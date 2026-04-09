@@ -1,0 +1,16 @@
+# Chặn rác của Backend từ gốc
+Backend/vendor/
+Backend/.env
+Backend/storage/*.key
+Backend/database.sqlite
+
+# Chặn rác của Frontend từ gốc
+Frontend/.dart_tool/
+Frontend/.flutter-plugins
+Frontend/.flutter-plugins-dependencies
+Frontend/build/
+
+# Chặn rác phát sinh ở thư mục gốc (nếu lỡ tay chạy lệnh nhầm)
+vendor/
+node_modules/
+.env
