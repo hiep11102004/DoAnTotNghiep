@@ -48,6 +48,7 @@ class TransactionController extends Controller
                 $wallet->current_balance += $request->amount;
             }
             $wallet->save();
+            
 
             return response()->json([
                 'message' => 'Lưu giao dịch thành công!',
@@ -57,7 +58,6 @@ class TransactionController extends Controller
         });
     }
 
-    // app/Http/Controllers/Api/TransactionController.php
 
     // 3. Xem chi tiết 1 giao dịch
     public function show($id)

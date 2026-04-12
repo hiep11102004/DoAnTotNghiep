@@ -42,10 +42,10 @@ class DatabaseSeeder extends Seeder
 
         // 4. Bảng Wallets
         $walletCash = DB::table('wallets')->insertGetId([
-            'user_id' => $userId, 'name' => 'Tiền mặt', 'type' => 'Cash', 'initial_balance' => 1000000, 'current_balance' => 850000, 'currency' => 'VND'
+            'user_id' => $userId, 'name' => 'Tiền mặt', 'type' => 'Cash', 'initial_balance' => 1000000, 'current_balance' => 1000000, 'currency' => 'VND'
         ]);
         $walletBank = DB::table('wallets')->insertGetId([
-            'user_id' => $userId, 'name' => 'Vietcombank', 'type' => 'Bank', 'initial_balance' => 5000000, 'current_balance' => 4200000, 'currency' => 'VND'
+            'user_id' => $userId, 'name' => 'Vietcombank', 'type' => 'Bank', 'initial_balance' => 5000000, 'current_balance' => 5000000, 'currency' => 'VND'
         ]);
 
         // 5. Bảng Transactions (Các giao dịch trong tuần)
