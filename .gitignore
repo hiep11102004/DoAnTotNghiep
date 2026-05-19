@@ -1,16 +1,22 @@
-# Chặn rác của Backend từ gốc
-Backend/vendor/
-Backend/.env
-Backend/storage/*.key
-Backend/database.sqlite
+# Các file tạm của hệ thống
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
-# Chặn rác của Frontend từ gốc
+# Chặn file rác của Frontend (Flutter)
 Frontend/.dart_tool/
 Frontend/.flutter-plugins
 Frontend/.flutter-plugins-dependencies
 Frontend/build/
+Frontend/.pub-cache/
 
-# Chặn rác phát sinh ở thư mục gốc (nếu lỡ tay chạy lệnh nhầm)
-vendor/
-node_modules/
-.env
+# Chặn file rác của Backend (Laravel)
+backend/vendor/
+backend/.env
+backend/bootstrap/cache/
+backend/storage/*.key
+backend/public/storage

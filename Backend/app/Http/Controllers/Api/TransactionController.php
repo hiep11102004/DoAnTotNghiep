@@ -4,110 +4,59 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Transaction;
-use App\Models\Wallet;
-use Illuminate\Support\Facades\DB;
+use App\Services\TransactionService;
 
 class TransactionController extends Controller
 {
-    // 1. Lấy danh sách giao dịch của người dùng
+    protected $transactionService;
+
+    public function __construct(TransactionService $transactionService)
+    {
+        $this->transactionService = $transactionService;
+    }
+
     public function index(Request $request)
     {
-        $user = $request->user();
-        
-        // Lấy giao dịch thông qua các ví của User đó
-        $transactions = Transaction::whereHas('wallet', function($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })->with(['category', 'wallet'])->orderBy('date', 'desc')->get();
-
+        $transactions = $this->transactionService->getAllTransactions($request->user());
         return response()->json($transactions);
     }
 
-    // 2. Thêm giao dịch mới và cập nhật số dư ví
     public function store(Request $request)
     {
         $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
             'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0',
-            'type' => 'required|in:Thu,Chi', // Xác định loại để cộng hay trừ tiền
+            'type' => 'required|in:Thu,Chi',
             'date' => 'required|date',
         ]);
 
-        // Dùng DB Transaction để đảm bảo: Hoặc cả 2 cùng thành công, hoặc không cái nào cả
-        return DB::transaction(function () use ($request) {
-            $wallet = Wallet::findOrFail($request->wallet_id);
-
-            // Tạo giao dịch
-            $transaction = Transaction::create($request->all());
-
-            // Cập nhật số dư ví
-            if ($request->type === 'Chi') {
-                $wallet->current_balance -= $request->amount;
-            } else {
-                $wallet->current_balance += $request->amount;
-            }
-            $wallet->save();
-            
-
-            return response()->json([
-                'message' => 'Lưu giao dịch thành công!',
-                'transaction' => $transaction->load(['category', 'wallet']),
-                'new_balance' => $wallet->current_balance
-            ], 201);
-        });
+        $transaction = $this->transactionService->createTransaction($request->all(), $request->user()->id);
+        return response()->json(['message' => 'Thêm thành công', 'data' => $transaction], 201);
     }
 
-
-    // 3. Xem chi tiết 1 giao dịch
     public function show($id)
     {
-        return Transaction::with(['category', 'wallet'])->findOrFail($id);
+        $transaction = $this->transactionService->getTransactionById($id);
+        return response()->json($transaction);
     }
 
-    // 4. Cập nhật giao dịch (Ví dụ sửa số tiền)
     public function update(Request $request, $id)
     {
-        $transaction = Transaction::findOrFail($id);
-        $wallet = Wallet::findOrFail($transaction->wallet_id);
-
-        return DB::transaction(function () use ($request, $transaction, $wallet) {
-            // Hoàn tác số tiền cũ trong ví trước khi cập nhật
-            if ($transaction->type === 'Chi') {
-                $wallet->current_balance += $transaction->amount;
-            } else {
-                $wallet->current_balance -= $transaction->amount;
-            }
-            // Cập nhật dữ liệu mới
-            $transaction->update($request->all());
-
-            // Áp dụng số tiền mới vào ví
-            if ($request->type === 'Chi') {
-                $wallet->current_balance -= $request->amount;
-            } else {
-                $wallet->current_balance += $request->amount;
-            }
-        
-            $wallet->save();
-            return response()->json(['message' => 'Cập nhật thành công', 'transaction' => $transaction]);
-        });
+        $request->validate([
+            'wallet_id' => 'exists:wallets,id',
+            'category_id' => 'exists:categories,id',
+            'amount' => 'numeric|min:0',
+            'type' => 'in:Thu,Chi',
+            'date' => 'date',
+        ]);
+        $transaction = $this->transactionService->updateTransaction($id, $request->all(), $request->user()->id);
+        return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
     }
 
-    // 5. Xóa giao dịch (Và hoàn tiền vào ví)
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $transaction = Transaction::findOrFail($id);
-        $wallet = Wallet::findOrFail($transaction->wallet_id);
-
-        DB::transaction(function () use ($transaction, $wallet) {
-            if ($transaction->type === 'Chi') {
-                $wallet->current_balance += $transaction->amount; // Hoàn tiền chi
-            } else {
-                $wallet->current_balance -= $transaction->amount; // Trừ tiền thu
-            }
-            $wallet->save();
-            $transaction->delete();
-        });
-        return response()->json(['message' => 'Đã xóa giao dịch và cập nhật lại ví']);
+        $this->transactionService->deleteTransaction($id, $request->user()->id);
+        return response()->json(['message' => 'Xóa thành công và đã cập nhật lại ví, ngân sách']);
     }
 }

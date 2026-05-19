@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('icon_color')->nullable();
             $table->boolean('is_default')->default(false);
             $table->timestamps();
+            $table->string('icon')->nullable();
+
         });
     }
 
