@@ -1,30 +1,56 @@
-import 'package:equatable/equatable.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/entities/budget_entity.dart';
-import '../../domain/usecase/get_budgets_usecase.dart';
+// budget_bloc.dart
 
-part 'budget_event.dart';
-part 'budget_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dio/dio.dart';
+import '../../data/models/budget_model.dart';
+import 'budget_event.dart'; // Đảm bảo import đúng
+import 'budget_state.dart';
 
 class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
-  final GetBudgetsUseCase getBudgetsUseCase;
+  final Dio dio;
 
-  BudgetBloc({
-    required this.getBudgetsUseCase,
-  }) : super(const BudgetInitial()) {
-    on<GetBudgetsEvent>(_onGetBudgets);
-  }
+  BudgetBloc({required this.dio}) : super(BudgetInitial()) {
+    
+    // Xử lý lấy danh sách
+    on<FetchBudgets>((event, emit) async {
+      emit(BudgetLoading());
+      try {
+        final response = await dio.get('http://192.168.1.140:8000/api/budgets');
+        if (response.statusCode == 200) {
+          final List<dynamic> data = response.data;
+          final budgets = data.map((json) => BudgetModel.fromJson(json)).toList();
+          emit(BudgetLoaded(budgets));
+        } else {
+          emit(BudgetError('Lỗi tải ngân sách: ${response.statusCode}'));
+        }
+      } catch (e) {
+        emit(BudgetError('Không thể kết nối server: $e'));
+      }
+    });
 
-  Future<void> _onGetBudgets(
-    GetBudgetsEvent event,
-    Emitter<BudgetState> emit,
-  ) async {
-    emit(const BudgetLoading());
-    try {
-      final budgets = await getBudgetsUseCase();
-      emit(BudgetLoaded(budgets));
-    } catch (e) {
-      emit(BudgetError(e.toString()));
-    }
+    // Xử lý thêm ngân sách
+    on<AddBudget>((event, emit) async {
+      // Bắn trạng thái loading để UI biết đang xử lý
+      emit(BudgetLoading()); 
+      try {
+        await dio.post('http://192.168.1.140:8000/api/budgets', data: {
+          'category_id': event.categoryId,
+          'amount_limit': event.amountLimit,
+        });
+        // Gọi lại FetchBudgets để cập nhật list mới nhất
+        add(FetchBudgets());
+      } catch (e) {
+        emit(BudgetError('Không thể tạo ngân sách: $e'));
+        // Sau khi báo lỗi thì nên tải lại danh sách cũ để UI không bị treo
+        add(FetchBudgets()); 
+      }
+    });
   }
 }
+
+// Định nghĩa Event AddBudget (nên để ở file budget_event.dart nhưng để đây cho nhanh cũng được)
+class AddBudget extends BudgetEvent {
+  final int categoryId;
+  final double amountLimit;
+  AddBudget({required this.categoryId, required this.amountLimit});
+} 

@@ -32,9 +32,9 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) async{
           if (state is AuthSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đăng nhập thành công!'), backgroundColor: Colors.green),
-            );
+            // ScaffoldMessenger.of(context).showSnackBar(
+            //   const SnackBar(content: Text('Đăng nhập thành công!'), backgroundColor: Colors.green),
+            // );
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', state.authEntity.token);
     

@@ -19,27 +19,29 @@ class BudgetModel extends BudgetEntity {
     endDate: endDate,
   );
 
-  factory BudgetModel.fromJson(Map<String, dynamic> json) {
-    return BudgetModel(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      categoryId: json['categoryId'] as String,
-      limit: (json['limit'] as num).toDouble(),
-      spent: (json['spent'] as num).toDouble(),
-      startDate: DateTime.parse(json['startDate'] as String),
-      endDate: DateTime.parse(json['endDate'] as String),
-    );
-  }
-
+factory BudgetModel.fromJson(Map<String, dynamic> json) {
+  return BudgetModel(
+    id: json['id']?.toString() ?? '',
+    userId: json['user_id']?.toString() ?? '',
+    categoryId: json['category_id']?.toString() ?? '',
+    
+    // SỬA Ở ĐÂY: Dùng tryParse để ép kiểu an toàn
+    // Dù Laravel gửi về là "20000.00" (String) hay 20000.00 (num) đều chạy tốt
+    limit: double.tryParse(json['amount_limit']?.toString() ?? '0') ?? 0.0,
+    spent: double.tryParse(json['spent_amount']?.toString() ?? '0') ?? 0.0,
+    
+    startDate: DateTime.tryParse(json['start_date']?.toString() ?? '') ?? DateTime.now(),
+    endDate: DateTime.tryParse(json['end_date']?.toString() ?? '') ?? DateTime.now(),
+  );
+}
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'userId': userId,
-      'categoryId': categoryId,
-      'limit': limit,
-      'spent': spent,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
+      'user_id': userId,
+      'category_id': categoryId,
+      'amount_limit': limit,
+      'spent_amount': spent,
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate.toIso8601String(),
     };
   }
 }

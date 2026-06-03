@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/budget_bloc.dart';
+import '../bloc/budget_state.dart';
 
 class BudgetPage extends StatelessWidget {
   const BudgetPage({Key? key}) : super(key: key);
