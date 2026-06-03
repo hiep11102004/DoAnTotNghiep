@@ -26,6 +26,12 @@ Route::post('/register', [AuthController::class, 'register']);
 | PROTECTED ROUTES (Bắt buộc phải có Token qua Sanctum)
 |--------------------------------------------------------------------------
 */
+
+Route::get('/transactions/summary', [TransactionController::class, 'getSummary']); 
+Route::apiResource('transactions', TransactionController::class); // 1 Dòng này thay thế cho 5 dòng index, store, show, update, destroy cũ của ông.
+Route::get('/wallets', [WalletController::class, 'index']);
+
+
 Route::middleware('auth:sanctum')->group(function () {
     
     // 1. Quản lý User & Profile
@@ -41,8 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 4. Quản lý Thu chi (Transactions) - Dùng Service
     // LƯU Ý CỰC KỲ QUAN TRỌNG: Các route custom (như /summary) PHẢI ĐẶT TRƯỚC apiResource!
-    Route::get('/transactions/summary', [TransactionController::class, 'getSummary']); 
-    Route::apiResource('transactions', TransactionController::class); // 1 Dòng này thay thế cho 5 dòng index, store, show, update, destroy cũ của ông.
+    
 
     // 5. Ngân sách & Tiết kiệm (Budgets & Saving Goals)
     Route::apiResource('budgets', BudgetController::class);

@@ -17,7 +17,11 @@ class TransactionController extends Controller
 
     public function index(Request $request)
     {
-        $transactions = $this->transactionService->getAllTransactions($request->user());
+        // $transactions = $this->transactionService->getAllTransactions($request->user());
+        // return response()->json($transactions);
+        $mockUser = \App\Models\User::find(1); 
+        
+        $transactions = $this->transactionService->getAllTransactions($mockUser);
         return response()->json($transactions);
     }
 
@@ -31,7 +35,9 @@ class TransactionController extends Controller
             'date' => 'required|date',
         ]);
 
-        $transaction = $this->transactionService->createTransaction($request->all(), $request->user()->id);
+        // $transaction = $this->transactionService->createTransaction($request->all(), $request->user()->id);
+        // return response()->json(['message' => 'Thêm thànqh công', 'data' => $transaction], 201);
+        $transaction = $this->transactionService->createTransaction($request->all(), 1);
         return response()->json(['message' => 'Thêm thành công', 'data' => $transaction], 201);
     }
 
@@ -50,7 +56,9 @@ class TransactionController extends Controller
             'type' => 'in:Thu,Chi',
             'date' => 'date',
         ]);
-        $transaction = $this->transactionService->updateTransaction($id, $request->all(), $request->user()->id);
+        // $transaction = $this->transactionService->updateTransaction($id, $request->all(), $request->user()->id);
+        // return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
+        $transaction = $this->transactionService->updateTransaction($id, $request->all(), 1);
         return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
     }
 

@@ -13,7 +13,13 @@ class WalletController extends Controller
      */
     public function index(Request $request)
     {
-        $wallets = Wallet::where('user_id', $request->user()->id)->get();
+        // $wallets = Wallet::where('user_id', $request->user()->id)->get();
+        // return response()->json($wallets);
+        // 🚀 FIX TẠM: Ép cứng lấy Ví của User có ID = 1 để test UI trước.
+        // (Khi nào ráp luồng Login xong thì ông mở lại code cũ: $request->user()->id)
+        $wallets = \App\Models\Wallet::where('user_id', 1)->get();
+        
+        // Trả về thẳng mảng JSON
         return response()->json($wallets);
     }
 
