@@ -8,10 +8,10 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\AIController;
 use App\Http\Controllers\Api\GamificationController;
-// THÊM 3 IMPORT CÒN THIẾU NÀY VÀO (Không có là lỗi 500 ngay):
 use App\Http\Controllers\Api\BudgetController;
 use App\Http\Controllers\Api\SavingGoalController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,11 +27,6 @@ Route::post('/register', [AuthController::class, 'register']);
 |--------------------------------------------------------------------------
 */
 
-Route::get('/transactions/summary', [TransactionController::class, 'getSummary']); 
-Route::apiResource('transactions', TransactionController::class); // 1 Dòng này thay thế cho 5 dòng index, store, show, update, destroy cũ của ông.
-Route::get('/wallets', [WalletController::class, 'index']);
-
-
 Route::middleware('auth:sanctum')->group(function () {
     
     // 1. Quản lý User & Profile
@@ -43,11 +38,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('wallets', WalletController::class);
 
     // 3. Quản lý Danh mục (Categories)
-    Route::apiResource('categories', CategoryController::class); // Tối ưu thành apiResource luôn cho nhàn
+    Route::apiResource('categories', CategoryController::class);
 
-    // 4. Quản lý Thu chi (Transactions) - Dùng Service
-    // LƯU Ý CỰC KỲ QUAN TRỌNG: Các route custom (như /summary) PHẢI ĐẶT TRƯỚC apiResource!
-    
+    // 4. Quản lý Thu chi (Transactions)
+    // 👉 ĐÃ ĐƯỢC CHUYỂN VÀO TRONG VÙNG BẢO MẬT:
+    Route::get('/transactions/summary', [TransactionController::class, 'getSummary']); 
+    Route::apiResource('transactions', TransactionController::class);
 
     // 5. Ngân sách & Tiết kiệm (Budgets & Saving Goals)
     Route::apiResource('budgets', BudgetController::class);
@@ -66,4 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 8. Thông báo (Notifications)
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+
+    // 9. Báo cáo (Reports)
+    Route::get('/reports/spending-by-category', [ReportController::class, 'getSpendingByCategory']);
 });

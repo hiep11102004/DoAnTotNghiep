@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\TransactionService;
+use App\Models\Wallet;
+use App\Models\Transaction;
+use App\Models\Budget;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -15,30 +19,96 @@ class TransactionController extends Controller
         $this->transactionService = $transactionService;
     }
 
+    // public function index(Request $request)
+    // {
+    //     // $transactions = $this->transactionService->getAllTransactions($request->user());
+    //     // return response()->json($transactions);
+    //     $mockUser = \App\Models\User::find(1); 
+        
+    //     $transactions = $this->transactionService->getAllTransactions($mockUser);
+    //     return response()->json($transactions);
+    // }
+
     public function index(Request $request)
     {
-        // $transactions = $this->transactionService->getAllTransactions($request->user());
-        // return response()->json($transactions);
-        $mockUser = \App\Models\User::find(1); 
-        
-        $transactions = $this->transactionService->getAllTransactions($mockUser);
-        return response()->json($transactions);
+        // 1. Tìm tất cả các ID ví thuộc về user đang đăng nhập
+        $walletIds = \App\Models\Wallet::where('user_id', $request->user()->id)->pluck('id');
+
+        // 2. Lấy tất cả giao dịch nằm trong các ví đó (sắp xếp mới nhất lên đầu)
+        $transactions = Transaction::whereIn('wallet_id', $walletIds)
+                                   ->orderBy('date', 'desc')
+                                   ->orderBy('id', 'desc')
+                                   ->get();
+
+        // 3. Trả về đúng cấu trúc mà App Flutter đang mong đợi
+        return response()->json([
+            'data' => $transactions
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        // 1. Validate dữ liệu đầu vào cho chắc cú
+        $validated = $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
             'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0',
-            'type' => 'required|in:Thu,Chi',
+            'type' => 'required|in:Thu,Chi', // Bắt buộc phải có Thu/Chi
             'date' => 'required|date',
+            'note' => 'nullable|string',
         ]);
 
-        // $transaction = $this->transactionService->createTransaction($request->all(), $request->user()->id);
-        // return response()->json(['message' => 'Thêm thànqh công', 'data' => $transaction], 201);
-        $transaction = $this->transactionService->createTransaction($request->all(), 1);
-        return response()->json(['message' => 'Thêm thành công', 'data' => $transaction], 201);
+        // 2. Lấy thông tin ví hiện tại
+        $wallet = Wallet::where('id', $validated['wallet_id'])
+                        ->where('user_id', $request->user()->id)
+                        ->first();
+
+        if (!$wallet) {
+            return response()->json(['message' => 'Không tìm thấy ví'], 404);
+        }
+
+        // Bắt đầu Transaction Database để đảm bảo an toàn (Lỗi 1 cái là rollback hết)
+        DB::beginTransaction();
+
+        try {
+            // 3. Tạo giao dịch mới
+            $transaction = Transaction::create($validated);
+
+            // 4. Cập nhật số dư của Ví (Tùy chọn: nếu app của ông đang dựa vào cột balance của Wallet)
+            if ($validated['type'] === 'Thu') {
+                $wallet->current_balance += $validated['amount'];
+            } else {
+                $wallet->current_balance -= $validated['amount'];
+            }
+            $wallet->save();
+
+            // 5. CẬP NHẬT NGÂN SÁCH (Phần ông đang cần nhất đây)
+            if ($validated['type'] === 'Chi') {
+                // Tìm xem trong tháng này có ngân sách nào thuộc Category này không
+                $budget = Budget::where('user_id', $request->user()->id)
+                    ->where('category_id', $validated['category_id'])
+                    ->whereMonth('start_date', date('m', strtotime($validated['date'])))
+                    ->whereYear('start_date', date('Y', strtotime($validated['date'])))
+                    ->first();
+
+                // Nếu có ngân sách, cộng tiền vừa chi vào spent_amount
+                if ($budget) {
+                    $budget->spent_amount += $validated['amount'];
+                    $budget->save();
+                }
+            }
+
+            DB::commit(); // Xác nhận lưu tất cả
+
+            return response()->json([
+                'message' => 'Đã lưu giao dịch thành công!',
+                'data' => $transaction
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Có lỗi xảy ra thì hủy bỏ toàn bộ thao tác vừa làm
+            return response()->json(['message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
+        }
     }
 
     public function show($id)

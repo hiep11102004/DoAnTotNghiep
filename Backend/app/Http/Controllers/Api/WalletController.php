@@ -36,7 +36,8 @@ class WalletController extends Controller
         ]);
 
         $wallet = Wallet::create([
-            'user_id' => $request->user()->id,
+            // 'user_id' => $request->user()->id,
+            'user_id' => 1,
             'name' => $validated['name'],
             'type' => $validated['type'],
             'currency' => $validated['currency'],
