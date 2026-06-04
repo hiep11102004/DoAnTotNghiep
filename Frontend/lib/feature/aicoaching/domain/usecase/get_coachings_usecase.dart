@@ -6,7 +6,7 @@ class GetCoachingsUseCase {
 
   GetCoachingsUseCase(this.repository);
 
-  Future<List<AICoachingEntity>> call() async {
+  Future<AICoachingEntity> call() async {
     return await repository.getCoachings();
   }
 }

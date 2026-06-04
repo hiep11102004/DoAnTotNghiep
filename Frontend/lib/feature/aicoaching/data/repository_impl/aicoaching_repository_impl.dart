@@ -8,10 +8,10 @@ class AICoachingRepositoryImpl implements AICoachingRepository {
 
   AICoachingRepositoryImpl({required this.dataSource});
 
+  
   @override
-  Future<List<AICoachingEntity>> getCoachings() async {
-    final coachings = await dataSource.getCoachings();
-    return coachings.map((coaching) => coaching as AICoachingEntity).toList();
+  Future<AICoachingEntity> getCoachings() async {
+    return await dataSource.getCoachings();
   }
 
   @override
@@ -23,13 +23,9 @@ class AICoachingRepositoryImpl implements AICoachingRepository {
   Future<AICoachingEntity> createCoaching(AICoachingEntity coaching) async {
     final coachingModel = AICoachingModel(
       id: coaching.id,
-      userId: coaching.userId,
-      topic: coaching.topic,
-      description: coaching.description,
-      content: coaching.content,
-      tips: coaching.tips,
+      review: coaching.review,
+      financialScore: coaching.financialScore,
       createdAt: coaching.createdAt,
-      updatedAt: coaching.updatedAt,
     );
     return await dataSource.createCoaching(coachingModel);
   }
@@ -38,13 +34,9 @@ class AICoachingRepositoryImpl implements AICoachingRepository {
   Future<AICoachingEntity> updateCoaching(AICoachingEntity coaching) async {
     final coachingModel = AICoachingModel(
       id: coaching.id,
-      userId: coaching.userId,
-      topic: coaching.topic,
-      description: coaching.description,
-      content: coaching.content,
-      tips: coaching.tips,
+      review: coaching.review,
+      financialScore: coaching.financialScore,
       createdAt: coaching.createdAt,
-      updatedAt: coaching.updatedAt,
     );
     return await dataSource.updateCoaching(coachingModel);
   }

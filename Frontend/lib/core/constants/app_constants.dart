@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String baseUrl = 'http://192.168.1.140:8000/api'; 
+  static const String baseUrl = 'http://192.168.1.3:8000/api'; 
 
   // Auth Endpoints
   static const String login = '/login';
@@ -14,4 +14,7 @@ class AppConstants {
   static const String savingGoals = '/saving-goals';
   static const String aiReviews = '/ai-reviews';
   static const String aiTasks = '/ai-tasks';
+
+  // Reports
+  static const String spendingByCategoryReport = '/reports/spending-by-category';
 }

@@ -1,9 +1,9 @@
+import 'package:financial_app/feature/transaction/presentation/bloc/report_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart'; // 🛠️ THÊM IMPORT DIO
+import 'package:dio/dio.dart'; 
 import 'core/network/dio_client.dart';
 import 'package:device_preview/device_preview.dart';
-
 
 // --- IMPORTS AUTH ---
 import 'feature/auth/data/datasource/auth_datasource.dart';
@@ -22,12 +22,18 @@ import 'feature/transaction/domain/usecase/delete_transaction_usecase.dart';
 import 'feature/transaction/presentation/bloc/transaction_bloc.dart';
 import 'feature/transaction/presentation/pages/dashboard_page.dart';
 
-// --- IMPORTS WALLET (MỚI THÊM) ---
-// 👉 Sửa lại đường dẫn này cho khớp đúng với thư mục bloc của ông nếu cần
+// --- IMPORTS WALLET & BUDGET ---
+// 🛠️ THÊM IMPORT REPOSITORY CỦA VÍ VÀO ĐÂY
 import 'feature/wallet/presentation/bloc/wallet_bloc.dart';
 import 'feature/wallet/presentation/bloc/wallet_event.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_event.dart';
+
+// --- IMPORTS AI COACHING ---
+import 'feature/aicoaching/data/datasource/ai_datasource.dart'; 
+import 'feature/aicoaching/data/repository_impl/aicoaching_repository_impl.dart';
+import 'feature/aicoaching/domain/usecase/get_coachings_usecase.dart';
+import 'feature/aicoaching/presentation/bloc/aicoaching_bloc.dart';
 
 void main() {
   // 1. Khởi tạo Dio Client dùng chung cho toàn bộ app
@@ -47,50 +53,56 @@ void main() {
   final updateTransactionUseCase = UpdateTransactionUseCase(transactionRepository);
   final deleteTransactionUseCase = DeleteTransactionUseCase(transactionRepository);
 
+  // 4. KHỞI TẠO CỤM CHỨC NĂNG AI COACHING
+  final aiDatasource = AIDatasource(dioClient.dio); 
+  final aiRepository = AICoachingRepositoryImpl(dataSource: aiDatasource);
+  final getCoachingsUseCase = GetCoachingsUseCase(aiRepository);
+
   runApp(
     DevicePreview(
-      enabled: true, // Bật giả lập điện thoại
+      enabled: true, 
       builder: (context) => MyApp(
-        dio: dioClient.dio, // 🛠️ BƠM DIO VÀO ĐÂY CHO WALLET BLOC DÙNG
+        dio: dioClient.dio, 
         authUsecase: authUsecase,
         getTransactionsUseCase: getTransactionsUseCase,
         createTransactionUseCase: createTransactionUseCase,
         updateTransactionUseCase: updateTransactionUseCase,
         deleteTransactionUseCase: deleteTransactionUseCase,
+        getCoachingsUseCase: getCoachingsUseCase,
       ),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  final Dio dio; // 🛠️ KHAI BÁO BIẾN DIO
+  final Dio dio; 
   final AuthUsecase authUsecase;
   
-  // Các UseCase của Transaction truyền qua constructor
   final GetTransactionsUseCase getTransactionsUseCase;
   final CreateTransactionUseCase createTransactionUseCase;
   final UpdateTransactionUseCase updateTransactionUseCase;
   final DeleteTransactionUseCase deleteTransactionUseCase;
   
+  final GetCoachingsUseCase getCoachingsUseCase;
+  
   const MyApp({
     super.key, 
-    required this.dio, // 🛠️ YÊU CẦU BẮT BUỘC TRUYỀN DIO
+    required this.dio, 
     required this.authUsecase,
     required this.getTransactionsUseCase,
     required this.createTransactionUseCase,
     required this.updateTransactionUseCase,
     required this.deleteTransactionUseCase,
+    required this.getCoachingsUseCase,
   });
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // Khởi tạo AuthBloc
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(authUsecase: authUsecase),
         ),
-        // Khởi tạo TransactionBloc
         BlocProvider<TransactionBloc>(
           create: (context) => TransactionBloc(
             getTransactionsUseCase: getTransactionsUseCase,
@@ -99,12 +111,19 @@ class MyApp extends StatelessWidget {
             deleteTransactionUseCase: deleteTransactionUseCase,
           ),
         ),
-        // 🚀 KHỞI TẠO WALLET BLOC VÀ BẮN EVENT FETCH NGAY LÚC MỞ APP
+        
+        // 🛠️ FIX: ĐĂNG KÝ LẠI WALLET BLOC CHUẨN CLEAN ARCHITECTURE
         BlocProvider<WalletBloc>(
           create: (context) => WalletBloc(dio: dio)..add(const FetchWallets()),
-        ),
+        ), 
         BlocProvider<BudgetBloc>(
           create: (context) => BudgetBloc(dio: dio)..add(FetchBudgets()),
+        ),
+        BlocProvider<ReportBloc>(
+          create: (context) => ReportBloc(dio: dio)..add(FetchCategorySpending()),
+        ),
+        BlocProvider<AICoachingBloc>(
+          create: (context) => AICoachingBloc(this.getCoachingsUseCase),
         ),
       ],
       child: MaterialApp(

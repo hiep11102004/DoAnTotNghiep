@@ -1,21 +1,13 @@
 class AICoachingEntity {
-  final String id;
-  final String userId;
-  final String topic;
-  final String description;
-  final String content;
-  final List<String> tips;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final int id;
+  final String review;
+  final int financialScore; // Điểm số tài chính (Ví dụ: 85%)
+  final String createdAt;
 
   AICoachingEntity({
     required this.id,
-    required this.userId,
-    required this.topic,
-    required this.description,
-    required this.content,
-    required this.tips,
+    required this.review,
+    required this.financialScore,
     required this.createdAt,
-    required this.updatedAt,
   });
 }

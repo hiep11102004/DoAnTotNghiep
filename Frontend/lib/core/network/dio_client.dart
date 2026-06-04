@@ -8,8 +8,8 @@ class DioClient {
   DioClient() : dio = Dio() {
     dio.options = BaseOptions(
       baseUrl: AppConstants.baseUrl,
-      connectTimeout: const Duration(seconds: 5), // Quá 5s không kết nối -> Báo lỗi
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 10), // Quá 5s không kết nối -> Báo lỗi
+      receiveTimeout: const Duration(seconds: 10),
     );
 
     // Thêm bộ lọc Interceptor đã viết ở File 3 vào Dio

@@ -27,7 +27,7 @@ class WalletPage extends StatelessWidget {
                 final wallet = state.wallets[index];
                 return ListTile(
                   title: Text(wallet.name),
-                  subtitle: Text('Balance: ${wallet.balance} ${wallet.currency}'),
+                  subtitle: Text('Balance: ${wallet.balance} đ'),
                 );
               },
             );

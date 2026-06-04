@@ -6,6 +6,21 @@ class BudgetCard extends StatelessWidget {
 
   const BudgetCard({super.key, required this.budget});
 
+  // 🛠️ TỪ ĐIỂN DỊCH ID THÀNH TÊN DANH MỤC NGÂN SÁCH KÈM EMOJI
+  String _getCategoryName(dynamic id) {
+    final int categoryId = int.tryParse(id.toString()) ?? 0;
+    
+    switch (categoryId) {
+      case 1: return 'Ăn uống 🍔';
+      case 2: return 'Đi lại 🚗'; 
+      case 3: return 'Mua sắm 🛍️';
+      case 4: return 'Giải trí 🎬';
+      case 5: return 'Hóa đơn 🧾';
+      case 6: return 'Sức khỏe 💊';
+      default: return 'Ngân sách #$categoryId';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Logic tính toán: tỉ lệ đã tiêu
@@ -34,7 +49,11 @@ class BudgetCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(budget.categoryId, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), // Tạm hiện categoryId
+              // 🛠️ ĐÃ THAY BẰNG HÀM DỊCH TÊN
+              Text(
+                _getCategoryName(budget.categoryId), 
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2C3E50))
+              ), 
               Text('${(percentage * 100).toInt()}%', style: TextStyle(color: progressColor, fontWeight: FontWeight.bold)),
             ],
           ),

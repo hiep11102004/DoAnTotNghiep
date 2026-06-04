@@ -18,8 +18,26 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+
+  // 🛠️ ĐÃ THÊM: Biến lưu ID được chọn
+  int? _selectedWalletId = 2; // Mặc định chọn ví số 2 (Tài khoản ngân hàng)
+  int? _selectedCategoryId = 1; // Mặc định chọn danh mục 1 (Ăn uống)
+
+  // 🛠️ ĐÃ THÊM: Danh sách Ví giả lập
+  final List<Map<String, dynamic>> _wallets = [
+    {'id': 1, 'name': 'Ví tiền mặt'},
+    {'id': 2, 'name': 'Tài khoản ngân hàng'},
+  ];
+
+  // 🛠️ ĐÃ THÊM: Danh sách Danh mục giả lập (Để vẽ biểu đồ nhiều màu)
+  final List<Map<String, dynamic>> _categories = [
+    {'id': 1, 'name': 'Ăn uống', 'icon': Icons.restaurant, 'color': Colors.orange},
+    {'id': 2, 'name': 'Mua sắm', 'icon': Icons.shopping_bag, 'color': Colors.blue},
+    {'id': 3, 'name': 'Giải trí', 'icon': Icons.movie, 'color': Colors.purple},
+    {'id': 4, 'name': 'Đi lại', 'icon': Icons.directions_car, 'color': Colors.green},
+  ];
   
-  // 🛠️ ĐÃ THÊM: Biến quản lý ImagePicker và file ảnh
+  // Biến quản lý ImagePicker và file ảnh
   final ImagePicker _picker = ImagePicker();
   XFile? _receiptImage;
   bool _isScanningAI = false;
@@ -53,7 +71,6 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
     }
   }
 
-  // 🛠️ HÀM MỚI: Hiện bảng tùy chọn chụp ảnh hoặc lấy từ thư viện
   void _showImageSourceActionSheet() {
     showModalBottomSheet(
       context: context,
@@ -86,7 +103,6 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
     );
   }
 
-  // 🛠️ HÀM MỚI: Xử lý lấy ảnh và gọi giả lập AI
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -95,17 +111,13 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
       });
 
       try {
-        // 1. Đọc file ảnh thành dữ liệu byte
         final imageBytes = await pickedFile.readAsBytes();
 
-        // 2. Khởi tạo não bộ Gemini (DÁN API KEY CỦA ÔNG VÀO ĐÂY)
-        // Lưu ý: Sau này làm đồ án thật thì nên giấu Key này vào file .env nhé
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash', // Dùng bản Flash cho tốc độ xử lý ảnh cực nhanh
+          model: 'gemini-3.5-flash', 
           apiKey: '', 
         );
 
-        // 3. Ra lệnh cho AI bằng Prompt (Dặn nó trả về JSON cho dễ đọc)
         final prompt = '''
           Hãy đóng vai một hệ thống nhận diện hóa đơn chuyên nghiệp. Phân tích bức ảnh này.
           
@@ -120,7 +132,6 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           {"amount": "tổng_số_tiền", "note": "tên_cửa_hàng"}
         ''';
 
-        // 4. Bắn ảnh và câu lệnh lên Google
         final response = await model.generateContent([
           Content.multi([
             TextPart(prompt),
@@ -128,9 +139,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           ])
         ]);
 
-        // 5. Bóc tách kết quả JSON AI trả về và điền vào Form
         if (response.text != null) {
-          // Xóa các ký tự thừa (như ```json và ```) nếu AI lỡ tay thêm vào
           String cleanJson = response.text!.replaceAll('```json', '').replaceAll('```', '').trim();
           final data = jsonDecode(cleanJson);
 
@@ -144,7 +153,6 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
         setState(() {
           _isScanningAI = false;
         });
-        // Báo lỗi nếu AI không đọc được
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('AI không thể đọc được hóa đơn: $e'), backgroundColor: Colors.red),
         );
@@ -163,12 +171,20 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
       return;
     }
 
+    // 🛠️ ĐÃ THÊM: Chặn lưu nếu quên chọn Ví hoặc Danh mục
+    if (_selectedWalletId == null || _selectedCategoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng chọn Ví và Danh mục!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     final dateString = "${_selectedDate.year.toString().padLeft(4, '0')}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')} 12:00:00";
 
     context.read<TransactionBloc>().add(
       AddTransactionSubmitted(
-        walletId: 1, 
-        categoryId: 1, 
+        walletId: _selectedWalletId!,      // 👈 Truyền ID thật vào đây
+        categoryId: _selectedCategoryId!,  // 👈 Truyền ID thật vào đây
         amount: amount,
         type: _isIncome ? 'Thu' : 'Chi',
         date: dateString,
@@ -204,11 +220,9 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
               ),
             ),
 
-            // NÚT GỌI AI QUÉT HÓA ĐƠN ĐÃ NỐI VỚI HÀM CHỌN ẢNH
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                // Bấm vào nút này sẽ gọi hàm _showImageSourceActionSheet mở menu Thư viện/Camera
                 onPressed: _isScanningAI ? null : _showImageSourceActionSheet,
                 icon: _isScanningAI 
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
@@ -226,7 +240,6 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
               ),
             ),
             
-            // 🛠️ HÀM MỚI: Nếu có ảnh thì hiển thị trạng thái tên file cho chuyên nghiệp
             if (_receiptImage != null && !_isScanningAI) ...[
               const SizedBox(height: 8),
               Row(
@@ -289,6 +302,50 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 20),
+
+            // 🛠️ ĐÃ THÊM: Giao diện Dropdown chọn Ví
+            DropdownButtonFormField<int>(
+              value: _selectedWalletId,
+              decoration: InputDecoration(
+                labelText: 'Chọn Ví',
+                prefixIcon: const Icon(Icons.account_balance_wallet, color: Color(0xFF27AE60)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              items: _wallets.map((wallet) {
+                return DropdownMenuItem<int>(
+                  value: wallet['id'],
+                  child: Text(wallet['name']),
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _selectedWalletId = value),
+            ),
+            const SizedBox(height: 16),
+
+            // 🛠️ ĐÃ THÊM: Giao diện Dropdown chọn Danh mục
+            DropdownButtonFormField<int>(
+              value: _selectedCategoryId,
+              decoration: InputDecoration(
+                labelText: 'Chọn Danh mục',
+                prefixIcon: const Icon(Icons.category, color: Colors.blueAccent),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              items: _categories.map((category) {
+                return DropdownMenuItem<int>(
+                  value: category['id'],
+                  child: Row(
+                    children: [
+                      Icon(category['icon'], color: category['color'], size: 20),
+                      const SizedBox(width: 12),
+                      Text(category['name']),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _selectedCategoryId = value),
             ),
             const SizedBox(height: 20),
 

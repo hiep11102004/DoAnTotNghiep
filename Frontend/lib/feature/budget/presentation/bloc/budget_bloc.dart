@@ -2,6 +2,7 @@
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
+import 'package:financial_app/core/constants/app_constants.dart';
 import '../../data/models/budget_model.dart';
 import 'budget_event.dart'; // Đảm bảo import đúng
 import 'budget_state.dart';
@@ -15,7 +16,7 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
     on<FetchBudgets>((event, emit) async {
       emit(BudgetLoading());
       try {
-        final response = await dio.get('http://192.168.1.140:8000/api/budgets');
+        final response = await dio.get(AppConstants.budgets);
         if (response.statusCode == 200) {
           final List<dynamic> data = response.data;
           final budgets = data.map((json) => BudgetModel.fromJson(json)).toList();
@@ -33,7 +34,7 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
       // Bắn trạng thái loading để UI biết đang xử lý
       emit(BudgetLoading()); 
       try {
-        await dio.post('http://192.168.1.140:8000/api/budgets', data: {
+        await dio.post(AppConstants.budgets, data: {
           'category_id': event.categoryId,
           'amount_limit': event.amountLimit,
         });

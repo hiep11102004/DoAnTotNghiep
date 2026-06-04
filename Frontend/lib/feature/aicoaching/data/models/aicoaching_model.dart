@@ -2,48 +2,23 @@ import '../../domain/entities/aicoaching_entity.dart';
 
 class AICoachingModel extends AICoachingEntity {
   AICoachingModel({
-    required String id,
-    required String userId,
-    required String topic,
-    required String description,
-    required String content,
-    required List<String> tips,
-    required DateTime createdAt,
-    required DateTime updatedAt,
+    required int id,
+    required String review,
+    required int financialScore,
+    required String createdAt,
   }) : super(
-    id: id,
-    userId: userId,
-    topic: topic,
-    description: description,
-    content: content,
-    tips: tips,
-    createdAt: createdAt,
-    updatedAt: updatedAt,
-  );
+          id: id,
+          review: review,
+          financialScore: financialScore,
+          createdAt: createdAt,
+        );
 
   factory AICoachingModel.fromJson(Map<String, dynamic> json) {
     return AICoachingModel(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      topic: json['topic'] as String,
-      description: json['description'] as String,
-      content: json['content'] as String,
-      tips: List<String>.from(json['tips'] as List<dynamic>),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      id: json['id'] ?? 0,
+      review: json['review'] ?? 'Không có nhận xét.',
+      financialScore: json['financial_score'] ?? 100, // Mặc định 100% nếu lỗi
+      createdAt: json['created_at'] ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'userId': userId,
-      'topic': topic,
-      'description': description,
-      'content': content,
-      'tips': tips,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-    };
   }
 }

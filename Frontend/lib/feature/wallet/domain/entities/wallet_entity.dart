@@ -1,19 +1,17 @@
 class WalletEntity {
-  final String id;
-  final String userId;
+  final int id;
   final String name;
-  final double balance;
-  final String currency;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final double initialBalance;
+  final double currentBalance;
 
-  WalletEntity({
+  const WalletEntity({
     required this.id,
-    required this.userId,
     required this.name,
-    required this.balance,
-    required this.currency,
-    required this.createdAt,
-    required this.updatedAt,
+    required this.initialBalance,
+    required this.currentBalance,
   });
+
+  // 🛠️ THỦ THUẬT: Đánh lừa UI. 
+  // UI gọi wallet.balance thì nó sẽ tự động lấy currentBalance trả về
+  double get balance => currentBalance; 
 }
