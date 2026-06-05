@@ -6,43 +6,57 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\Wallet;
-use App\Models\Budget;
-use App\Models\SavingGoal; // Giả định ông có bảng này lưu mục tiêu tiết kiệm (Xpander...)
+use App\Models\SavingGoal;
 use Gemini\Laravel\Facades\Gemini;
 
 class AIController extends Controller
 {
     public function getReviews(Request $request)
     {
-        // FIX 1: Tạm thời gán cứng user_id = 1 (hoặc ID của ông trong DB) để test thông luồng Gemini.
-        // Sau này khi Flutter truyền Token chuẩn thì mở lại dòng $request->user()->id
-        $userId = $request->user() ? $request->user()->id : 1; 
+        $userId = $request->user()->id;
 
-        // 1. Thu thập dữ liệu thực tế của User để làm nguyên liệu cho AI
-        $walletIds = Wallet::where('user_id', $userId)->pluck('id');
+        // 1. Thu thập dữ liệu tài chính của user
         $totalBalance = Wallet::where('user_id', $userId)->sum('current_balance');
-        
-        // Tính tổng thu, tổng chi trong tháng này
-        $totalIncome = Transaction::whereIn('wallet_id', $walletIds)->where('type', 'Thu')->whereMonth('date', now()->month)->sum('amount');
-        $totalExpense = Transaction::whereIn('wallet_id', $walletIds)->where('type', 'Chi')->whereMonth('date', now()->month)->sum('amount');
+        $totalIncome  = Transaction::where('user_id', $userId)->where('type', 'Thu')->whereMonth('date', now()->month)->sum('amount');
+        $totalExpense = Transaction::where('user_id', $userId)->where('type', 'Chi')->whereMonth('date', now()->month)->sum('amount');
 
-        // Lấy danh sách giao dịch gần đây để AI biết ông hay tiêu gì
-        $recentNotes = Transaction::whereIn('wallet_id', $walletIds)->where('type', 'Chi')->orderBy('date', 'desc')->take(5)->pluck('note')->toArray();
-        $recentNotesStr = empty($recentNotes) ? "Chưa có giao dịch" : implode(', ', $recentNotes);
+        $recentNotes = Transaction::where('user_id', $userId)
+            ->where('type', 'Chi')
+            ->orderBy('date', 'desc')
+            ->take(5)
+            ->pluck('note')
+            ->filter()
+            ->toArray();
+        $recentNotesStr = empty($recentNotes) ? 'Chưa có giao dịch' : implode(', ', $recentNotes);
 
-        // 2. Xây dựng Prompt
+        // 2. Lấy mục tiêu tiết kiệm thực tế của user
+        $savingGoals = SavingGoal::where('user_id', $userId)->get();
+        if ($savingGoals->isEmpty()) {
+            $goalsStr = 'Chưa có mục tiêu tiết kiệm nào';
+        } else {
+            $goalsStr = $savingGoals->map(function ($g) {
+                $progress = $g->target_amount > 0
+                    ? round(($g->current_amount / $g->target_amount) * 100)
+                    : 0;
+                return "{$g->goal_name} (cần " . number_format($g->target_amount) . "đ, đã tiết kiệm " . number_format($g->current_amount) . "đ — {$progress}%)";
+            })->implode('; ');
+        }
+
+        // 3. Xây dựng Prompt dùng dữ liệu thực tế
         $prompt = "Bạn là một chuyên gia huấn luyện tài chính cá nhân (AI Financial Coach) thông minh, vui vẻ.
         Hãy phân tích dữ liệu tài chính thực tế sau đây của người dùng:
         - Tổng số dư hiện tại trong các ví: " . number_format($totalBalance) . "đ
         - Tổng tiền thu vào tháng này: " . number_format($totalIncome) . "đ
         - Tổng tiền đã chi ra tháng này: " . number_format($totalExpense) . "đ
-        - Các khoản chi gần đây nhất: {$recentNotesStr}.
-        
-        Yêu cầu: 
-        1. Đưa ra 1 lời nhận xét ngắn gọn, súc tích (khoảng 2-3 câu), chỉ thẳng vào thói quen chi tiêu. Nhắc tới mục tiêu mua xe Xpander nếu thấy họ đang tiết kiệm tốt.
-        2. Giọng văn phải mang tính động viên, chuyên nghiệp nhưng gần gũi.
-        
-        BẮT BUỘC TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU, KHÔNG GIẢI THÍCH DÒNG VO:
+        - Các khoản chi gần đây nhất: {$recentNotesStr}
+        - Mục tiêu tiết kiệm của người dùng: {$goalsStr}
+
+        Yêu cầu:
+        1. Đưa ra 1 lời nhận xét ngắn gọn, súc tích (khoảng 2-3 câu), chỉ thẳng vào thói quen chi tiêu.
+        2. Nếu người dùng đang tiến gần tới mục tiêu tiết kiệm nào đó, hãy nhắc tới và động viên họ.
+        3. Giọng văn phải mang tính động viên, chuyên nghiệp nhưng gần gũi.
+
+        BẮT BUỘC TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU, KHÔNG GIẢI THÍCH THÊM:
         {\"review\": \"nội_dung_lời_nhận_xét_của_bạn\"}";
 
         try {

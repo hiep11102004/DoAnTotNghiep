@@ -34,11 +34,11 @@ class DatabaseSeeder extends Seeder
             'daily_reminder_time' => '21:00:00',
         ]);
 
-        // 3. Bảng Categories (Mặc định)
-        $catFood = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Ăn uống', 'type' => 'Chi phí', 'is_default' => true, 'icon_color' => 'orange']);
-        $catRent = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Tiền trọ', 'type' => 'Chi phí', 'is_default' => true, 'icon_color' => 'blue']);
-        $catSalary = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Lương làm thêm', 'type' => 'Thu nhập', 'is_default' => true, 'icon_color' => 'green']);
-        $catTravel = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Di chuyển', 'type' => 'Chi phí', 'is_default' => true, 'icon_color' => 'yellow']);
+        // 3. Bảng Categories (Mặc định) — type dùng 'income'/'expense' để đồng bộ với Flutter và API
+        $catFood   = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Ăn uống',       'type' => 'expense', 'is_default' => true, 'icon_color' => 'orange', 'icon' => 'fastfood']);
+        $catRent   = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Tiền trọ',      'type' => 'expense', 'is_default' => true, 'icon_color' => 'blue',   'icon' => 'home']);
+        $catSalary = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Lương làm thêm','type' => 'income',  'is_default' => true, 'icon_color' => 'green',  'icon' => 'attach_money']);
+        $catTravel = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Di chuyển',     'type' => 'expense', 'is_default' => true, 'icon_color' => 'yellow', 'icon' => 'directions_car']);
 
         // 4. Bảng Wallets
         $walletCash = DB::table('wallets')->insertGetId([
@@ -50,9 +50,9 @@ class DatabaseSeeder extends Seeder
 
         // 5. Bảng Transactions (Các giao dịch trong tuần)
         DB::table('transactions')->insert([
-            ['wallet_id' => $walletBank, 'category_id' => $catRent, 'amount' => 2000000, 'date' => Carbon::now()->subDays(5), 'note' => 'Thanh toán tiền phòng tháng 4', 'source' => 'Manual'],
-            ['wallet_id' => $walletCash, 'category_id' => $catFood, 'amount' => 50000, 'date' => Carbon::now()->subDays(2), 'note' => 'Ăn sáng phở bò', 'source' => 'OCR'],
-            ['wallet_id' => $walletBank, 'category_id' => $catSalary, 'amount' => 1500000, 'date' => Carbon::now()->subDays(1), 'note' => 'Lương thực tập tháng 3', 'source' => 'Manual'],
+            ['user_id' => $userId, 'wallet_id' => $walletBank, 'category_id' => $catRent,   'type' => 'Chi', 'amount' => 2000000, 'date' => Carbon::now()->subDays(5), 'note' => 'Thanh toán tiền phòng tháng 4', 'source' => 'Manual'],
+            ['user_id' => $userId, 'wallet_id' => $walletCash, 'category_id' => $catFood,   'type' => 'Chi', 'amount' => 50000,   'date' => Carbon::now()->subDays(2), 'note' => 'Ăn sáng phở bò',              'source' => 'OCR'],
+            ['user_id' => $userId, 'wallet_id' => $walletBank, 'category_id' => $catSalary, 'type' => 'Thu', 'amount' => 1500000, 'date' => Carbon::now()->subDays(1), 'note' => 'Lương thực tập tháng 3',       'source' => 'Manual'],
         ]);
 
         // 6. Bảng Budgets

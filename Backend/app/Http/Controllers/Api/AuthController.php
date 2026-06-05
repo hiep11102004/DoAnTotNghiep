@@ -3,58 +3,39 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\UpdateSettingsRequest;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\UserSetting;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    // Hàm Đăng ký thành viên mới
-    public function register(Request $request)
+    public function register(RegisterRequest $request)
     {
-        // Kiểm tra dữ liệu gửi lên từ Flutter
-        $validator = Validator::make($request->all(), [
-            'full_name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users', // Kiểm tra trùng username
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first()
-            ], 422);
-        }
-
-        // Tạo user mới vào bảng users
         $user = User::create([
             'full_name' => $request->full_name,
-            'username' => $request->username, // Lưu username
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'username'  => $request->username,
+            'email'     => $request->email,
+            'password'  => Hash::make($request->password),
         ]);
 
         // Tạo Token tự động đăng nhập luôn sau khi đăng ký thành công
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
+            'status'       => 'success',
             'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
+            'token_type'   => 'Bearer',
+            'user'         => new UserResource($user),
         ], 200);
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        // Kiểm tra dữ liệu gửi lên
-        $request->validate([
-            'username' => 'required',
-            'password' => 'required',
-        ]);
-
         // Tìm user theo username
         $user = User::where('username', $request->username)
                     ->orWhere('email', $request->username)
@@ -72,10 +53,10 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'status' => 'success',
+            'status'       => 'success',
             'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user
+            'token_type'   => 'Bearer',
+            'user'         => new UserResource($user),
         ]);
     }
 
@@ -84,5 +65,32 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Đã đăng xuất thành công']);
+    }
+
+    public function getSettings(Request $request)
+    {
+        $settings = UserSetting::find($request->user()->id);
+
+        return response()->json($settings ?? [
+            'language'            => 'vi',
+            'theme'               => 'light',
+            'enable_ai'           => true,
+            'daily_reminder_time' => null,
+        ]);
+    }
+
+    public function updateSettings(UpdateSettingsRequest $request)
+    {
+        $validated = $request->validated();
+
+        $settings = UserSetting::updateOrCreate(
+            ['user_id' => $request->user()->id],
+            $validated
+        );
+
+        return response()->json([
+            'message' => 'Cập nhật cài đặt thành công',
+            'data'    => $settings,
+        ]);
     }
 }

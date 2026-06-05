@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 1. Quản lý User & Profile
     Route::get('/user', function (Request $request) { return $request->user(); });
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user/settings', [AuthController::class, 'getSettings']);
     Route::put('/user/settings', [AuthController::class, 'updateSettings']);
 
     // 2. Quản lý Ví (Wallets)

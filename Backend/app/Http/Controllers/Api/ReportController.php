@@ -11,16 +11,12 @@ class ReportController extends Controller
 {
     public function getSpendingByCategory(Request $request)
     {
-        // Dùng whereHas để truy vết ngược từ Transaction -> Wallet -> User
-        $spending = Transaction::whereHas('wallet', function ($query) use ($request) {
-                $query->where('user_id', $request->user()->id);
-            })
-            // ->where('type', 'Chi') // GHI CHÚ BÊN DƯỚI (*)
+        $spending = Transaction::where('user_id', $request->user()->id)
             ->whereMonth('date', now()->month)
             ->whereYear('date', now()->year)
             ->select('category_id', DB::raw('SUM(amount) as total_amount'))
             ->groupBy('category_id')
-            ->with('category:id,name,icon_color') 
+            ->with('category:id,name,icon_color')
             ->get();
 
         return response()->json($spending);

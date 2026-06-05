@@ -1,4 +1,4 @@
-# Các file tạm của hệ thống
+# --- CẤU HÌNH CHUNG ---
 .DS_Store
 .idea/
 .vscode/
@@ -6,17 +6,27 @@
 *.ntvs*
 *.njsproj
 *.sln
+*.log
 
-# Chặn file rác của Frontend (Flutter)
+# --- FRONTEND (FLUTTER) ---
 Frontend/.dart_tool/
 Frontend/.flutter-plugins
 Frontend/.flutter-plugins-dependencies
+Frontend/.packages
 Frontend/build/
 Frontend/.pub-cache/
+Frontend/.pub/
 
-# Chặn file rác của Backend (Laravel)
+# --- BACKEND (LARAVEL) ---
+Backend/vendor/
+Backend/.env
 backend/vendor/
 backend/.env
+backend/node_modules/
+backend/public/hot
+backend/public/storage
 backend/bootstrap/cache/
 backend/storage/*.key
-backend/public/storage
+backend/.phpunit.result.cache
+backend/npm-debug.log
+backend/yarn-error.log

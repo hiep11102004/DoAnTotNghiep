@@ -122,10 +122,11 @@ class TransactionService
         $budget->update(['spent_amount' => $totalSpent]);
 
         // 3. KIỂM TRA NGƯỠNG CẢNH BÁO
+        // alert_threshold lưu dạng integer (e.g. 80 = 80%), phải chia 100 khi tính
         $limit = $budget->amount_limit;
-        $threshold = $budget->alert_threshold; // Mặc định 0.8
+        $threshold = $budget->alert_threshold;
 
-        if ($totalSpent >= ($limit * $threshold)) {
+        if ($totalSpent >= ($limit * $threshold / 100)) {
             // Kiểm tra xem đã báo trong hôm nay chưa để tránh spam
             $exists = Notification::where('user_id', $userId)
                 ->where('type', 'budget_alert')

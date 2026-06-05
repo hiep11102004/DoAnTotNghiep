@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreSavingGoalRequest;
+use App\Http\Requests\UpdateSavingGoalRequest;
+use App\Http\Resources\SavingGoalResource;
 use Illuminate\Http\Request;
 use App\Models\SavingGoal;
 
@@ -14,28 +17,22 @@ class SavingGoalController extends Controller
     public function index(Request $request)
     {
         $goals = SavingGoal::where('user_id', $request->user()->id)->get();
-        return response()->json($goals);
+        return response()->json(SavingGoalResource::collection($goals));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreSavingGoalRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'target_amount' => 'required|numeric',
-            'current_amount' => 'nullable|numeric',
-            'target_date' => 'nullable|date',
-            'color' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $goal = SavingGoal::create(array_merge($validated, [
-            'user_id' => $request->user()->id,
+            'user_id'        => $request->user()->id,
             'current_amount' => $validated['current_amount'] ?? 0,
         ]));
 
-        return response()->json($goal, 201);
+        return response()->json(new SavingGoalResource($goal), 201);
     }
 
     /**
@@ -44,27 +41,18 @@ class SavingGoalController extends Controller
     public function show(Request $request, string $id)
     {
         $goal = SavingGoal::where('user_id', $request->user()->id)->findOrFail($id);
-        return response()->json($goal);
+        return response()->json(new SavingGoalResource($goal));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateSavingGoalRequest $request, string $id)
     {
         $goal = SavingGoal::where('user_id', $request->user()->id)->findOrFail($id);
+        $goal->update($request->validated());
 
-        $validated = $request->validate([
-            'name' => 'required|string',
-            'target_amount' => 'required|numeric',
-            'current_amount' => 'nullable|numeric',
-            'target_date' => 'nullable|date',
-            'color' => 'nullable|string',
-        ]);
-
-        $goal->update($validated);
-
-        return response()->json($goal);
+        return response()->json(new SavingGoalResource($goal));
     }
 
     /**

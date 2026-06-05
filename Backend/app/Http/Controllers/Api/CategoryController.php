@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Resources\CategoryResource;
 use Illuminate\Http\Request;
 use App\Models\Category;
 
@@ -13,23 +16,16 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        return response()->json(Category::all());
+        return response()->json(CategoryResource::collection(Category::all()));
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreCategoryRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'icon' => 'nullable|string', // FontAwesome icon name
-            'type' => 'required|in:income,expense',
-            'color' => 'nullable|string',
-        ]);
-
-        $category = Category::create($validated);
-        return response()->json($category, 201);
+        $category = Category::create($request->validated());
+        return response()->json(new CategoryResource($category), 201);
     }
 
     /**
@@ -38,24 +34,17 @@ class CategoryController extends Controller
     public function show(string $id)
     {
         $category = Category::findOrFail($id);
-        return response()->json($category);
+        return response()->json(new CategoryResource($category));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateCategoryRequest $request, string $id)
     {
         $category = Category::findOrFail($id);
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'icon' => 'nullable|string', // FontAwesome icon name
-            'type' => 'required|in:income,expense',
-            'color' => 'nullable|string',
-        ]);
-
-        $category->update($validated);
-        return response()->json($category);
+        $category->update($request->validated());
+        return response()->json(new CategoryResource($category));
     }
 
     /**
