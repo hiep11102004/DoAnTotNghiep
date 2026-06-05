@@ -19,4 +19,9 @@ class AuthRepositoryImpl implements AuthRepository {
     final data = await datasource.register(name, email, password);
     return AuthModel.fromJson(data);
   }
+
+  @override
+  Future<void> logout() async {
+    await datasource.logout();
+  }
 }

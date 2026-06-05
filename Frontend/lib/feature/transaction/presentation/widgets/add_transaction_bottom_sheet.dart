@@ -11,6 +11,7 @@ import '../bloc/transaction_bloc.dart';
 import '../bloc/transaction_event.dart';
 import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:financial_app/core/constants/app_secrets.dart';
 
 class AddTransactionBottomSheet extends StatefulWidget {
   const AddTransactionBottomSheet({super.key});
@@ -119,8 +120,8 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
         final imageBytes = await pickedFile.readAsBytes();
 
         final model = GenerativeModel(
-          model: 'gemini-1.5-flash', 
-          apiKey: '', 
+          model: 'gemini-3.5-flash',
+          apiKey: AppSecrets.geminiApiKey,
         );
 
         final prompt = '''

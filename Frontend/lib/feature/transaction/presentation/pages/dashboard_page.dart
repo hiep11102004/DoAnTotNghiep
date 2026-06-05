@@ -1,4 +1,8 @@
+import 'package:financial_app/feature/aicoaching/presentation/bloc/aicoaching_bloc.dart';
+import 'package:financial_app/feature/aicoaching/presentation/bloc/aicoaching_event.dart';
+import 'package:financial_app/feature/aicoaching/presentation/bloc/aicoaching_state.dart';
 import 'package:financial_app/feature/aicoaching/presentation/pages/aicoaching_page.dart';
+import 'package:financial_app/feature/auth/presentation/pages/profile_page.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_state.dart';
 import 'package:financial_app/feature/budget/presentation/widgets/add_budget_bottom_sheet.dart';
@@ -10,12 +14,13 @@ import 'package:financial_app/feature/wallet/presentation/bloc/wallet_state.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:financial_app/feature/wallet/presentation/widgets/add_wallet_bottom_sheet.dart'; 
+import 'package:financial_app/feature/wallet/presentation/widgets/add_wallet_bottom_sheet.dart';
 
 import '../bloc/transaction_bloc.dart';
 import '../bloc/transaction_event.dart';
 import '../bloc/transaction_state.dart';
 import '../widgets/add_transaction_bottom_sheet.dart';
+import '../widgets/edit_transaction_bottom_sheet.dart';
 import 'report_page.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -32,11 +37,9 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // Kéo dữ liệu giao dịch
     context.read<TransactionBloc>().add(FetchTransactions());
-    
-    // Kéo dữ liệu Ví ngay khi mở app
-    context.read<WalletBloc>().add(FetchWallets()); 
+    context.read<WalletBloc>().add(FetchWallets());
+    context.read<AICoachingBloc>().add(LoadAICoachingEvent());
   }
 
   String _formatCurrency(double amount) {
@@ -103,11 +106,11 @@ class _DashboardPageState extends State<DashboardPage> {
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            _buildDashboardContent(), 
-            const ReportPage(),       
-            const SizedBox.shrink(),  
+            _buildDashboardContent(),
+            const ReportPage(),
+            const SizedBox.shrink(),
             const AiCoachingPage(),
-            const Center(child: Text("Tính năng Tài khoản đang phát triển", style: TextStyle(color: Colors.grey))),
+            const ProfilePage(),
           ],
         ),
       ),
@@ -270,10 +273,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       )
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
-                    child: const Icon(Icons.notifications_none, size: 18, color: Colors.white),
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/notifications'),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                      child: const Icon(Icons.notifications_none, size: 18, color: Colors.white),
+                    ),
                   ),
                 ],
               ),
@@ -426,30 +432,54 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildAICoachingCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1F4068), Color(0xFF162447)]),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
-              SizedBox(width: 6),
-              Text('FINN', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1))
-            ]
+    return BlocBuilder<AICoachingBloc, AICoachingState>(
+      builder: (context, state) {
+        String displayText = 'AI đang phân tích dữ liệu chi tiêu của bạn...';
+        if (state is AICoachingLoaded) {
+          displayText = state.coachingData.review;
+        } else if (state is AICoachingError) {
+          displayText = 'Không thể tải nhận xét AI lúc này.';
+        }
+
+        return GestureDetector(
+          onTap: () => setState(() => _currentIndex = 3),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF1F4068), Color(0xFF162447)]),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(children: [
+                  Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
+                  SizedBox(width: 6),
+                  Text('FINN', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                ]),
+                const SizedBox(height: 8),
+                state is AICoachingLoading
+                    ? const SizedBox(
+                        height: 18, width: 18,
+                        child: CircularProgressIndicator(color: Colors.amber, strokeWidth: 2),
+                      )
+                    : Text(
+                        '"$displayText"',
+                        style: const TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4, fontStyle: FontStyle.italic),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Text('Xem chi tiết →', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
           ),
-          SizedBox(height: 8),
-          Text(
-            '"Tốc độ chi tiêu tuần này của bạn đang giảm 12% so với tuần trước. Rất tốt! Mục tiêu tiết kiệm mua xe Xpander đang đi đúng tiến độ 85%."',
-            style: TextStyle(color: Colors.white, fontSize: 12.5, height: 1.4, fontStyle: FontStyle.italic),
-          )
-        ]
-      )
+        );
+      },
     );
   }
 
@@ -575,45 +605,89 @@ class _DashboardPageState extends State<DashboardPage> {
                 itemBuilder: (context, index) {
                   final item = displayTransactions[index];
                   final isIncome = item.type == 'Thu';
-                  
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), 
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), 
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      children: [
-                        _buildSmartTransactionIcon(item.note, isIncome),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(item.note ?? 'Không có ghi chú', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF2C3E50)), overflow: TextOverflow.ellipsis),
-                              const SizedBox(height: 3),
-                              Text(item.date.split(' ')[0], style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.w500)),
-                            ],
-                          ),
+
+                  return Dismissible(
+                    key: Key('transaction_${item.id}'),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.red.shade400, borderRadius: BorderRadius.circular(16)),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      child: const Icon(Icons.delete_outline, color: Colors.white),
+                    ),
+                    confirmDismiss: (_) async {
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Xóa giao dịch'),
+                          content: const Text('Bạn có chắc muốn xóa giao dịch này?'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
+                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa', style: TextStyle(color: Colors.red))),
+                          ],
                         ),
-                        Text(
-                          '${isIncome ? "+" : "-"}${_formatCurrency(item.amount)}',
-                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: isIncome ? const Color(0xFF27AE60) : const Color(0xFFE74C3C)),
+                      ) ?? false;
+                    },
+                    onDismissed: (_) {
+                      context.read<TransactionBloc>().add(DeleteTransactionPressed(id: item.id));
+                      context.read<ReportBloc>().add(FetchCategorySpending());
+                    },
+                    child: GestureDetector(
+                      onTap: () async {
+                        final result = await showModalBottomSheet<bool>(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => EditTransactionBottomSheet(transaction: item),
+                        );
+                        if (result == true && context.mounted) {
+                          context.read<TransactionBloc>().add(FetchTransactions());
+                          context.read<ReportBloc>().add(FetchCategorySpending());
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                        child: Row(
+                          children: [
+                            _buildSmartTransactionIcon(item.note, isIncome),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.note ?? 'Không có ghi chú', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: Color(0xFF2C3E50)), overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 3),
+                                  Text(item.date.split(' ')[0], style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${isIncome ? "+" : "-"}${_formatCurrency(item.amount)}',
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: isIncome ? const Color(0xFF27AE60) : const Color(0xFFE74C3C)),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   );
                 },
               ),
               if (transactions.length > 3)
                 Padding(
-                  padding: const EdgeInsets.only(top: 16, bottom: 20),
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.swipe_left, size: 14, color: Colors.grey.shade500),
-                        const SizedBox(width: 6),
-                        Text('Vuốt sang tab Báo cáo để xem toàn bộ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
-                      ],
+                  padding: const EdgeInsets.only(top: 8, bottom: 20, left: 16, right: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pushNamed(context, '/transactions'),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF27AE60)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Xem tất cả giao dịch', style: TextStyle(color: Color(0xFF27AE60), fontWeight: FontWeight.w600)),
                     ),
                   ),
                 )

@@ -22,3 +22,8 @@ class RegisterSubmitted extends AuthEvent {
     required this.password,
   });
 }
+
+// Sự kiện khi ông ấn nút Đăng xuất
+class LogoutSubmitted extends AuthEvent {
+  const LogoutSubmitted();
+}

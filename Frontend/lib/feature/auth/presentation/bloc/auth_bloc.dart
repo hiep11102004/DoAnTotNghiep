@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/usecase/auth_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -7,19 +8,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthUsecase authUsecase;
 
   AuthBloc({required this.authUsecase}) : super(AuthInitial()) {
-    
-    // Xử lý sự kiện Đăng nhập
+
     on<LoginSubmitted>((event, emit) async {
-      emit(AuthLoading()); // Bắn ra trạng thái Loading để UI xoay vòng vòng
+      emit(AuthLoading());
       try {
         final authEntity = await authUsecase.executeLogin(event.email, event.password);
-        emit(AuthSuccess(authEntity: authEntity)); // Thành công rồi, chuyển màn hình thôi
+        emit(AuthSuccess(authEntity: authEntity));
       } catch (e) {
-        emit(AuthFailure(message: e.toString().replaceAll('Exception: ', ''))); // Thất bại thì báo lỗi
+        emit(AuthFailure(message: e.toString().replaceAll('Exception: ', '')));
       }
     });
 
-    // Xử lý sự kiện Đăng ký
     on<RegisterSubmitted>((event, emit) async {
       emit(AuthLoading());
       try {
@@ -28,6 +27,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       } catch (e) {
         emit(AuthFailure(message: e.toString().replaceAll('Exception: ', '')));
       }
+    });
+
+    on<LogoutSubmitted>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        await authUsecase.executeLogout();
+      } catch (_) {
+        // Dù API lỗi vẫn xóa token local và đăng xuất
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      emit(AuthLoggedOut());
     });
   }
 }

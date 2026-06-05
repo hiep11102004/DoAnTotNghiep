@@ -66,10 +66,6 @@ class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
     );
     
 
-    // 👇 TẠM THỜI TÔI IN RA CONSOLE ĐỂ ÔNG XEM NÓ ĐÃ CHẠY ĐÚNG CHƯA, 
-    // Khi ráp BLoC vào thì ông xóa dòng print này đi và mở comment block ở trên ra.
-    // print("CHUẨN BỊ GỬI LÊN LARAVEL: Category: $_selectedCategoryId, Lmit: $limit, Start: $startDateStr, End: $endDateStr");
-
     Navigator.of(context).pop(true);
   }
 

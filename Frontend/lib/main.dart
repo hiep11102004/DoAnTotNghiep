@@ -1,20 +1,27 @@
 import 'package:financial_app/feature/category/data/datasource/category_remote_data_source.dart';
 import 'package:financial_app/feature/category/data/repository_impl/category_repository_impl.dart';
+import 'package:financial_app/feature/notification/notification_bloc.dart';
+import 'package:financial_app/feature/notification/notification_datasource.dart';
+import 'package:financial_app/feature/notification/notification_page.dart';
+import 'package:financial_app/feature/saving_goal/saving_goal_bloc.dart';
+import 'package:financial_app/feature/saving_goal/saving_goal_datasource.dart';
+import 'package:financial_app/feature/saving_goal/saving_goal_page.dart';
 import 'package:financial_app/feature/transaction/presentation/bloc/report_bloc.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart'; 
+import 'package:dio/dio.dart';
 import 'core/network/dio_client.dart';
 import 'package:device_preview/device_preview.dart';
 
-// --- IMPORTS AUTH ---
+// --- AUTH ---
 import 'feature/auth/data/datasource/auth_datasource.dart';
 import 'feature/auth/data/repository_impl/auth_repository_impl.dart';
 import 'feature/auth/domain/usecase/auth_usecase.dart';
 import 'feature/auth/presentation/bloc/auth_bloc.dart';
 import 'feature/auth/presentation/pages/login_page.dart';
 
-// --- IMPORTS TRANSACTION ---
+// --- TRANSACTION ---
 import 'feature/transaction/data/datasource/transaction_datasource.dart';
 import 'feature/transaction/data/repository_impl/transaction_repository_impl.dart';
 import 'feature/transaction/domain/usecase/get_transactions_usecase.dart';
@@ -23,81 +30,87 @@ import 'feature/transaction/domain/usecase/update_transaction_usecase.dart';
 import 'feature/transaction/domain/usecase/delete_transaction_usecase.dart';
 import 'feature/transaction/presentation/bloc/transaction_bloc.dart';
 import 'feature/transaction/presentation/pages/dashboard_page.dart';
+import 'feature/transaction/presentation/pages/transaction_list_page.dart';
 
-// --- IMPORTS WALLET & BUDGET ---
+// --- WALLET & BUDGET ---
 import 'feature/wallet/presentation/bloc/wallet_bloc.dart';
 import 'feature/wallet/presentation/bloc/wallet_event.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_event.dart';
 
-// --- IMPORTS AI COACHING ---
-import 'feature/aicoaching/data/datasource/ai_datasource.dart'; 
+// --- AI COACHING ---
+import 'feature/aicoaching/data/datasource/ai_datasource.dart';
 import 'feature/aicoaching/data/repository_impl/aicoaching_repository_impl.dart';
 import 'feature/aicoaching/domain/usecase/get_coachings_usecase.dart';
 import 'feature/aicoaching/presentation/bloc/aicoaching_bloc.dart';
 
-// 🚀 TẦM QUAN TRỌNG: IMPORTS CATEGORY VỪA TẠO
+// --- CATEGORY ---
 import 'feature/category/presentation/bloc/category_bloc.dart';
 
 void main() {
-  // 1. Khởi tạo Dio Client dùng chung cho toàn bộ app
   final dioClient = DioClient();
 
-  // 2. Khởi tạo cụm chức năng AUTH
   final authDatasource = AuthDatasource(dioClient.dio);
   final authRepository = AuthRepositoryImpl(authDatasource);
   final authUsecase = AuthUsecase(authRepository);
 
-  // 3. Khởi tạo cụm chức năng TRANSACTION
   final transactionDatasource = TransactionDatasource(dioClient.dio);
   final transactionRepository = TransactionRepositoryImpl(transactionDatasource);
-  
   final getTransactionsUseCase = GetTransactionsUseCase(transactionRepository);
   final createTransactionUseCase = CreateTransactionUseCase(transactionRepository);
   final updateTransactionUseCase = UpdateTransactionUseCase(transactionRepository);
   final deleteTransactionUseCase = DeleteTransactionUseCase(transactionRepository);
 
-  // 4. KHỞI TẠO CỤM CHỨC NĂNG AI COACHING
-  final aiDatasource = AIDatasource(dioClient.dio); 
+  final aiDatasource = AIDatasource(dioClient.dio);
   final aiRepository = AICoachingRepositoryImpl(dataSource: aiDatasource);
   final getCoachingsUseCase = GetCoachingsUseCase(aiRepository);
 
+  final savingGoalDatasource = SavingGoalDatasource(dioClient.dio);
+  final notificationDatasource = NotificationDatasource(dioClient.dio);
+
   runApp(
     DevicePreview(
-      enabled: true, 
+      enabled: !kReleaseMode,
       builder: (context) => MyApp(
-        dio: dioClient.dio, 
+        dio: dioClient.dio,
         authUsecase: authUsecase,
         getTransactionsUseCase: getTransactionsUseCase,
         createTransactionUseCase: createTransactionUseCase,
         updateTransactionUseCase: updateTransactionUseCase,
         deleteTransactionUseCase: deleteTransactionUseCase,
         getCoachingsUseCase: getCoachingsUseCase,
+        aiDatasource: aiDatasource,
+        savingGoalDatasource: savingGoalDatasource,
+        notificationDatasource: notificationDatasource,
       ),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  final Dio dio; 
+  final Dio dio;
   final AuthUsecase authUsecase;
-  
   final GetTransactionsUseCase getTransactionsUseCase;
   final CreateTransactionUseCase createTransactionUseCase;
   final UpdateTransactionUseCase updateTransactionUseCase;
   final DeleteTransactionUseCase deleteTransactionUseCase;
-  
   final GetCoachingsUseCase getCoachingsUseCase;
-  
+  final AIDatasource aiDatasource;
+  final SavingGoalDatasource savingGoalDatasource;
+  final NotificationDatasource notificationDatasource;
+
   const MyApp({
-    super.key, 
-    required this.dio, 
+    super.key,
+    required this.dio,
     required this.authUsecase,
     required this.getTransactionsUseCase,
     required this.createTransactionUseCase,
     required this.updateTransactionUseCase,
     required this.deleteTransactionUseCase,
     required this.getCoachingsUseCase,
+    required this.aiDatasource,
+    required this.savingGoalDatasource,
+    required this.notificationDatasource,
   });
 
   @override
@@ -105,10 +118,10 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(authUsecase: authUsecase),
+          create: (_) => AuthBloc(authUsecase: authUsecase),
         ),
         BlocProvider<TransactionBloc>(
-          create: (context) => TransactionBloc(
+          create: (_) => TransactionBloc(
             getTransactionsUseCase: getTransactionsUseCase,
             createTransactionUseCase: createTransactionUseCase,
             updateTransactionUseCase: updateTransactionUseCase,
@@ -116,27 +129,29 @@ class MyApp extends StatelessWidget {
           ),
         ),
         BlocProvider<WalletBloc>(
-          create: (context) => WalletBloc(dio: dio)..add(const FetchWallets()),
-        ), 
+          create: (_) => WalletBloc(dio: dio)..add(const FetchWallets()),
+        ),
         BlocProvider<BudgetBloc>(
-          create: (context) => BudgetBloc(dio: dio)..add(FetchBudgets()),
+          create: (_) => BudgetBloc(dio: dio)..add(FetchBudgets()),
         ),
         BlocProvider<ReportBloc>(
-          create: (context) => ReportBloc(dio: dio)..add(FetchCategorySpending()),
+          create: (_) => ReportBloc(dio: dio)..add(FetchCategorySpending()),
         ),
         BlocProvider<AICoachingBloc>(
-          create: (context) => AICoachingBloc(this.getCoachingsUseCase),
+          create: (_) => AICoachingBloc(getCoachingsUseCase, aiDatasource),
         ),
-        
-        // 🚀 BÍ QUYẾT: ĐĂNG KÝ CATEGORY BLOC CHUẨN CLEAN ARCHITECTURE
         BlocProvider<CategoryBloc>(
-          create: (context) => CategoryBloc(
+          create: (_) => CategoryBloc(
             repository: CategoryRepositoryImpl(
-              remoteDataSource: CategoryRemoteDataSourceImpl(
-                dio: dio,
-              ),
+              remoteDataSource: CategoryRemoteDataSourceImpl(dio: dio),
             ),
-          )..add(FetchCategories()), // Tự động load danh mục khi mở app
+          )..add(FetchCategories()),
+        ),
+        BlocProvider<SavingGoalBloc>(
+          create: (_) => SavingGoalBloc(savingGoalDatasource),
+        ),
+        BlocProvider<NotificationBloc>(
+          create: (_) => NotificationBloc(notificationDatasource),
         ),
       ],
       child: MaterialApp(
@@ -145,14 +160,14 @@ class MyApp extends StatelessWidget {
         builder: DevicePreview.appBuilder,
         debugShowCheckedModeBanner: false,
         title: 'Financial AI Coaching',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorSchemeSeed: Colors.blue,
-        ),
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
         initialRoute: '/login',
         routes: {
-          '/login': (context) => const LoginPage(),
-          '/dashboard': (context) => const DashboardPage(),
+          '/login': (_) => const LoginPage(),
+          '/dashboard': (_) => const DashboardPage(),
+          '/notifications': (_) => const NotificationPage(),
+          '/saving-goals': (_) => const SavingGoalPage(),
+          '/transactions': (_) => const TransactionListPage(),
         },
         home: const LoginPage(),
       ),

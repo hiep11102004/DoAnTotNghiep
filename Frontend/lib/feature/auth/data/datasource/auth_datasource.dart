@@ -22,11 +22,19 @@ class AuthDatasource {
     try {
       final response = await dio.post(
         AppConstants.register,
-        data: {'full_name': name,'username': email.split('@')[0], 'email': email, 'password': password},
+        data: {'full_name': name, 'username': email.split('@')[0], 'email': email, 'password': password},
       );
       return response.data;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Lỗi đăng ký thất bại');
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await dio.post(AppConstants.logout);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Lỗi đăng xuất');
     }
   }
 }

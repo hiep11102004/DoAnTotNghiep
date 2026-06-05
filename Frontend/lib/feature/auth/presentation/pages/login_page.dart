@@ -32,13 +32,12 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) async{
           if (state is AuthSuccess) {
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   const SnackBar(content: Text('Đăng nhập thành công!'), backgroundColor: Colors.green),
-            // );
             final prefs = await SharedPreferences.getInstance();
             await prefs.setString('token', state.authEntity.token);
-    
-            // Sau khi lưu xong mới đá sang trang Dashboard
+            await prefs.setInt('user_id', state.authEntity.id);
+            await prefs.setString('user_name', state.authEntity.name);
+            await prefs.setString('user_email', state.authEntity.email);
+
             if (context.mounted) {
               Navigator.pushReplacementNamed(context, '/dashboard');
             }

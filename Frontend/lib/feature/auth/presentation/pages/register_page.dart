@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -31,12 +32,17 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, iconTheme: const IconThemeData(color: Colors.black87)),
       body: BlocConsumer<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state == AuthSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đăng ký tài khoản thành công!'), backgroundColor: Colors.green),
-            );
-            Navigator.pop(context); // Quay lại trang Login
+        listener: (context, state) async {
+          if (state is AuthSuccess) {
+            // Lưu token + user info giống login_page, vì backend trả về token ngay khi đăng ký
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('token', state.authEntity.token);
+            await prefs.setInt('user_id', state.authEntity.id);
+            await prefs.setString('user_name', state.authEntity.name);
+            await prefs.setString('user_email', state.authEntity.email);
+            if (context.mounted) {
+              Navigator.pushReplacementNamed(context, '/dashboard');
+            }
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: Colors.red),

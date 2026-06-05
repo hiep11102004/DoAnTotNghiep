@@ -10,10 +10,6 @@ class TransactionDatasource {
   Future<List<TransactionModel>> getTransactions() async {
     try {
       final response = await dio.get('/transactions');
-      
-      // 🛠️ THÊM DÒNG NÀY ĐỂ SOI KẾT QUẢ LARAVEL TRẢ VỀ:
-      print('🔥 DATA GET ĐƯỢC: ${response.data}');
-      
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data is List ? response.data : (response.data['data'] ?? []);
         return data.map((json) => TransactionModel.fromJson(json)).toList();
@@ -21,11 +17,8 @@ class TransactionDatasource {
         throw Exception('Không thể lấy danh sách giao dịch');
       }
     } on DioException catch (e) {
-      // 🛠️ THÊM DÒNG NÀY ĐỂ BẮT LỖI 500/404 NẾU CÓ:
-      // print('🔥 LỖI TỪ LARAVEL KHI GET: ${e.response?.data}');
       throw Exception('Lỗi kết nối Server: $e');
     } catch (e) {
-      // print('🔥 LỖI FLUTTER KHI PARSE JSON: $e');
       throw Exception('Lỗi hệ thống: $e');
     }
   }
@@ -40,8 +33,6 @@ class TransactionDatasource {
         throw Exception(response.data['message'] ?? 'Không thể tạo giao dịch');
       }
     } on DioException catch (e) {
-      // 🛠️ THÊM DÒNG PRINT NÀY VÀO ĐỂ ÉP LỖI HIỆN RA:
-      // print('🔥 LỖI TỪ LARAVEL TỪ CHỐI GIAO DỊCH: ${e.response?.data}');
       throw Exception(e.response?.data['message'] ?? 'Lỗi kết nối Server');
     } catch (e) {
       throw Exception('Lỗi hệ thống: $e');

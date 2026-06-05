@@ -13,4 +13,8 @@ class AuthUsecase {
   Future<AuthEntity> executeRegister(String name, String email, String password) async {
     return await repository.register(name, email, password);
   }
+
+  Future<void> executeLogout() async {
+    await repository.logout();
+  }
 }

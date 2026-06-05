@@ -80,7 +80,8 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       emit(TransactionLoading());
       try {
         await deleteTransactionUseCase.execute(event.id);
-        emit(const TransactionActionSuccess(message: 'Xóa giao dịch thành công! 🗑️'));
+        emit(const TransactionActionSuccess(message: 'Xóa giao dịch thành công!'));
+        add(FetchTransactions());
       } catch (e) {
         emit(TransactionFailure(message: e.toString().replaceAll('Exception: ', '')));
       }

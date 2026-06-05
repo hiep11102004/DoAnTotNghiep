@@ -21,3 +21,6 @@ class AuthFailure extends AuthState {
   final String message;
   const AuthFailure({required this.message});
 }
+
+// Trạng thái đăng xuất thành công
+class AuthLoggedOut extends AuthState {}
