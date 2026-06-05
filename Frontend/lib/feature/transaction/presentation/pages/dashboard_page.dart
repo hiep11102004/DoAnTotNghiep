@@ -440,7 +440,7 @@ class _DashboardPageState extends State<DashboardPage> {
             children: [
               Icon(Icons.auto_awesome, color: Colors.amber, size: 16),
               SizedBox(width: 6),
-              Text('AI FINANCIAL COACHING', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1))
+              Text('FINN', style: TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1))
             ]
           ),
           SizedBox(height: 8),

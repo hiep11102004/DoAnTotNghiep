@@ -34,9 +34,12 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
       // Bắn trạng thái loading để UI biết đang xử lý
       emit(BudgetLoading()); 
       try {
+        // 🚀 ĐÃ FIX: Gửi đầy đủ 4 trường dữ liệu lên Laravel
         await dio.post(AppConstants.budgets, data: {
           'category_id': event.categoryId,
           'amount_limit': event.amountLimit,
+          'start_date': event.startDate,
+          'end_date': event.endDate,
         });
         // Gọi lại FetchBudgets để cập nhật list mới nhất
         add(FetchBudgets());
@@ -49,9 +52,17 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
   }
 }
 
-// Định nghĩa Event AddBudget (nên để ở file budget_event.dart nhưng để đây cho nhanh cũng được)
+// 🚀 ĐÃ FIX: Định nghĩa lại Event AddBudget để nhận thêm ngày tháng
 class AddBudget extends BudgetEvent {
   final int categoryId;
   final double amountLimit;
-  AddBudget({required this.categoryId, required this.amountLimit});
-} 
+  final String startDate;
+  final String endDate;
+  
+  AddBudget({
+    required this.categoryId, 
+    required this.amountLimit,
+    required this.startDate,
+    required this.endDate,
+  });
+}

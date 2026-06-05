@@ -1,3 +1,5 @@
+import 'package:financial_app/feature/category/data/datasource/category_remote_data_source.dart';
+import 'package:financial_app/feature/category/data/repository_impl/category_repository_impl.dart';
 import 'package:financial_app/feature/transaction/presentation/bloc/report_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,7 +25,6 @@ import 'feature/transaction/presentation/bloc/transaction_bloc.dart';
 import 'feature/transaction/presentation/pages/dashboard_page.dart';
 
 // --- IMPORTS WALLET & BUDGET ---
-// 🛠️ THÊM IMPORT REPOSITORY CỦA VÍ VÀO ĐÂY
 import 'feature/wallet/presentation/bloc/wallet_bloc.dart';
 import 'feature/wallet/presentation/bloc/wallet_event.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
@@ -34,6 +35,9 @@ import 'feature/aicoaching/data/datasource/ai_datasource.dart';
 import 'feature/aicoaching/data/repository_impl/aicoaching_repository_impl.dart';
 import 'feature/aicoaching/domain/usecase/get_coachings_usecase.dart';
 import 'feature/aicoaching/presentation/bloc/aicoaching_bloc.dart';
+
+// 🚀 TẦM QUAN TRỌNG: IMPORTS CATEGORY VỪA TẠO
+import 'feature/category/presentation/bloc/category_bloc.dart';
 
 void main() {
   // 1. Khởi tạo Dio Client dùng chung cho toàn bộ app
@@ -111,8 +115,6 @@ class MyApp extends StatelessWidget {
             deleteTransactionUseCase: deleteTransactionUseCase,
           ),
         ),
-        
-        // 🛠️ FIX: ĐĂNG KÝ LẠI WALLET BLOC CHUẨN CLEAN ARCHITECTURE
         BlocProvider<WalletBloc>(
           create: (context) => WalletBloc(dio: dio)..add(const FetchWallets()),
         ), 
@@ -124,6 +126,17 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AICoachingBloc>(
           create: (context) => AICoachingBloc(this.getCoachingsUseCase),
+        ),
+        
+        // 🚀 BÍ QUYẾT: ĐĂNG KÝ CATEGORY BLOC CHUẨN CLEAN ARCHITECTURE
+        BlocProvider<CategoryBloc>(
+          create: (context) => CategoryBloc(
+            repository: CategoryRepositoryImpl(
+              remoteDataSource: CategoryRemoteDataSourceImpl(
+                dio: dio,
+              ),
+            ),
+          )..add(FetchCategories()), // Tự động load danh mục khi mở app
         ),
       ],
       child: MaterialApp(

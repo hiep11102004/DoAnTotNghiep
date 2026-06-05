@@ -1,4 +1,10 @@
+import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+// 🔴 QUAN TRỌNG: Mở comment 2 dòng này ra và trỏ đúng đường dẫn tới file Bloc của ông
+// import '../bloc/budget_bloc.dart';
+// import '../bloc/budget_event.dart';
 
 class AddBudgetBottomSheet extends StatefulWidget {
   const AddBudgetBottomSheet({super.key});
@@ -10,10 +16,8 @@ class AddBudgetBottomSheet extends StatefulWidget {
 class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
   final _limitController = TextEditingController();
   
-  // 🛠️ BIẾN LƯU TRỮ ID ĐƯỢC CHỌN TỪ DROPDOWN
   int? _selectedCategoryId;
 
-  // 🛠️ DANH SÁCH CÁC DANH MỤC CỐ ĐỊNH (Tương ứng với ID trên Laravel)
   final List<Map<String, dynamic>> _categories = [
     {'id': 1, 'name': 'Ăn uống 🍔', 'icon': Icons.fastfood, 'color': Colors.orange},
     {'id': 2, 'name': 'Đi lại 🚗', 'icon': Icons.directions_car, 'color': Colors.blue},
@@ -41,9 +45,31 @@ class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
       return;
     }
 
-    // Gửi Event tạo ngân sách mới lên BLoC (Ông nhớ check lại event của ông tên gì nhé)
-    // context.read<BudgetBloc>().add(CreateBudget(categoryId: _selectedCategoryId!, limit: limit));
+    // 🚀 BÍ QUYẾT TỰ ĐỘNG TÍNH NGÀY ĐẦU THÁNG VÀ CUỐI THÁNG
+    final now = DateTime.now();
+    // Ngày 1 của tháng hiện tại
+    final startDateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-01"; 
+    // Ngày cuối cùng của tháng hiện tại
+    final lastDay = DateTime(now.year, now.month + 1, 0).day; 
+    final endDateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${lastDay.toString().padLeft(2, '0')}";
+
+    // 🛠️ ĐÃ MỞ COMMENT VÀ THÊM NGÀY THÁNG: Gửi Event lên BLoC
+    // Nhớ đảm bảo trong BudgetEvent của ông có nhận startDate và endDate nhé!
     
+    context.read<BudgetBloc>().add(
+      AddBudget(
+        categoryId: _selectedCategoryId!, 
+        amountLimit: limit,
+        startDate: startDateStr,
+        endDate: endDateStr,
+      )
+    );
+    
+
+    // 👇 TẠM THỜI TÔI IN RA CONSOLE ĐỂ ÔNG XEM NÓ ĐÃ CHẠY ĐÚNG CHƯA, 
+    // Khi ráp BLoC vào thì ông xóa dòng print này đi và mở comment block ở trên ra.
+    // print("CHUẨN BỊ GỬI LÊN LARAVEL: Category: $_selectedCategoryId, Lmit: $limit, Start: $startDateStr, End: $endDateStr");
+
     Navigator.of(context).pop(true);
   }
 
@@ -71,7 +97,6 @@ class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
           ),
           const SizedBox(height: 20),
           
-          // 🛠️ DROPDOWN MENU CHỌN DANH MỤC NGÂN SÁCH
           DropdownButtonFormField<int>(
             value: _selectedCategoryId,
             decoration: InputDecoration(
@@ -103,7 +128,6 @@ class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
           
           const SizedBox(height: 16),
           
-          // Ô NHẬP HẠN MỨC TIỀN
           TextField(
             controller: _limitController,
             keyboardType: TextInputType.number,
@@ -118,7 +142,6 @@ class _AddBudgetBottomSheetState extends State<AddBudgetBottomSheet> {
           
           const SizedBox(height: 24),
           
-          // NÚT LƯU
           SizedBox(
             width: double.infinity,
             height: 52,

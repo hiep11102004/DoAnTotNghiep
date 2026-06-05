@@ -1,3 +1,9 @@
+import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
+import 'package:financial_app/feature/budget/presentation/bloc/budget_event.dart';
+import 'package:financial_app/feature/category/presentation/bloc/category_bloc.dart';
+import 'package:financial_app/feature/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:financial_app/feature/wallet/presentation/bloc/wallet_event.dart';
+import 'package:financial_app/feature/wallet/presentation/bloc/wallet_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart'; 
@@ -19,25 +25,11 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
   final TextEditingController _noteController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  // 🛠️ ĐÃ THÊM: Biến lưu ID được chọn
-  int? _selectedWalletId = 2; // Mặc định chọn ví số 2 (Tài khoản ngân hàng)
-  int? _selectedCategoryId = 1; // Mặc định chọn danh mục 1 (Ăn uống)
+  int? _selectedWalletId; 
+  int? _selectedCategoryId; // 🛠️ ĐÃ XÓA GIÁ TRỊ GÁN CỨNG (=1)
 
-  // 🛠️ ĐÃ THÊM: Danh sách Ví giả lập
-  final List<Map<String, dynamic>> _wallets = [
-    {'id': 1, 'name': 'Ví tiền mặt'},
-    {'id': 2, 'name': 'Tài khoản ngân hàng'},
-  ];
-
-  // 🛠️ ĐÃ THÊM: Danh sách Danh mục giả lập (Để vẽ biểu đồ nhiều màu)
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 1, 'name': 'Ăn uống', 'icon': Icons.restaurant, 'color': Colors.orange},
-    {'id': 2, 'name': 'Mua sắm', 'icon': Icons.shopping_bag, 'color': Colors.blue},
-    {'id': 3, 'name': 'Giải trí', 'icon': Icons.movie, 'color': Colors.purple},
-    {'id': 4, 'name': 'Đi lại', 'icon': Icons.directions_car, 'color': Colors.green},
-  ];
+  // 🛠️ ĐÃ XÓA BỎ MẢNG _categories GÁN CỨNG Ở ĐÂY!
   
-  // Biến quản lý ImagePicker và file ảnh
   final ImagePicker _picker = ImagePicker();
   XFile? _receiptImage;
   bool _isScanningAI = false;
@@ -47,6 +39,18 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
     _amountController.dispose();
     _noteController.dispose();
     super.dispose();
+  }
+
+  // 🚀 Hàm tự động gắn Icon đẹp cho Danh mục dựa vào tên
+  IconData _getIconForCategory(String name) {
+    final lowerName = name.toLowerCase();
+    if (lowerName.contains('ăn')) return Icons.fastfood;
+    if (lowerName.contains('lại') || lowerName.contains('xe')) return Icons.directions_car;
+    if (lowerName.contains('mua')) return Icons.shopping_bag;
+    if (lowerName.contains('lương')) return Icons.attach_money;
+    if (lowerName.contains('hóa đơn')) return Icons.receipt_long;
+    if (lowerName.contains('khỏe') || lowerName.contains('thuốc')) return Icons.medical_services;
+    return Icons.category; // Icon mặc định
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -108,35 +112,28 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
     if (pickedFile != null) {
       setState(() {
         _isScanningAI = true;
+        _receiptImage = pickedFile;
       });
 
       try {
         final imageBytes = await pickedFile.readAsBytes();
 
         final model = GenerativeModel(
-          model: 'gemini-3.5-flash', 
+          model: 'gemini-1.5-flash', 
           apiKey: '', 
         );
 
         final prompt = '''
           Hãy đóng vai một hệ thống nhận diện hóa đơn chuyên nghiệp. Phân tích bức ảnh này.
-          
-          NẾU BỨC ẢNH KHÔNG PHẢI LÀ HÓA ĐƠN HOẶC KHÔNG CÓ SỐ TIỀN:
-          Bắt buộc trả về đúng JSON này: {"amount": "0", "note": "Không nhận diện được hóa đơn"}
-          
-          NẾU LÀ HÓA ĐƠN THẬT, hãy trích xuất:
-          1. Tổng số tiền phải thanh toán cuối cùng (chỉ trả về các con số, ví dụ: 150000. Không chứa dấu phẩy, chữ đ hay VNĐ).
+          NẾU BỨC ẢNH KHÔNG PHẢI LÀ HÓA ĐƠN HOẶC KHÔNG CÓ SỐ TIỀN: Bắt buộc trả về JSON này: {"amount": "0", "note": "Không nhận diện được hóa đơn"}
+          NẾU LÀ HÓA ĐƠN THẬT, trích xuất:
+          1. Tổng số tiền phải thanh toán cuối cùng.
           2. Tên cửa hàng hoặc lý do chi tiêu ngắn gọn.
-          
-          BẮT BUỘC TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU, KHÔNG GIẢI THÍCH HAY VIẾT THÊM BẤT CỨ CHỮ NÀO KHÁC:
-          {"amount": "tổng_số_tiền", "note": "tên_cửa_hàng"}
+          BẮT BUỘC TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU: {"amount": "tổng_số_tiền", "note": "tên_cửa_hàng"}
         ''';
 
         final response = await model.generateContent([
-          Content.multi([
-            TextPart(prompt),
-            DataPart('image/jpeg', imageBytes),
-          ])
+          Content.multi([TextPart(prompt), DataPart('image/jpeg', imageBytes)])
         ]);
 
         if (response.text != null) {
@@ -150,12 +147,8 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           });
         }
       } catch (e) {
-        setState(() {
-          _isScanningAI = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('AI không thể đọc được hóa đơn: $e'), backgroundColor: Colors.red),
-        );
+        setState(() => _isScanningAI = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI lỗi: $e')));
       }
     }
   }
@@ -165,17 +158,12 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
     final amount = double.tryParse(amountText) ?? 0.0;
 
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ!'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập số tiền hợp lệ!'), backgroundColor: Colors.red));
       return;
     }
 
-    // 🛠️ ĐÃ THÊM: Chặn lưu nếu quên chọn Ví hoặc Danh mục
     if (_selectedWalletId == null || _selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng chọn Ví và Danh mục!'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn Ví và Danh mục!'), backgroundColor: Colors.red));
       return;
     }
 
@@ -183,8 +171,8 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
 
     context.read<TransactionBloc>().add(
       AddTransactionSubmitted(
-        walletId: _selectedWalletId!,      // 👈 Truyền ID thật vào đây
-        categoryId: _selectedCategoryId!,  // 👈 Truyền ID thật vào đây
+        walletId: _selectedWalletId!,      
+        categoryId: _selectedCategoryId!,  
         amount: amount,
         type: _isIncome ? 'Thu' : 'Chi',
         date: dateString,
@@ -193,7 +181,15 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
       ),
     );
 
+    final walletBloc = context.read<WalletBloc>();
+    final budgetBloc = context.read<BudgetBloc>();
+
     Navigator.pop(context, true);
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      walletBloc.add(const FetchWallets()); 
+      budgetBloc.add(FetchBudgets());       
+    });
   }
 
   @override
@@ -213,9 +209,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
           children: [
             Center(
               child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                width: 40, height: 4, margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
               ),
             ),
@@ -224,13 +218,8 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _isScanningAI ? null : _showImageSourceActionSheet,
-                icon: _isScanningAI 
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.document_scanner, color: Colors.blueAccent),
-                label: Text(
-                  _isScanningAI ? 'AI đang phân tích ảnh...' : '✨ Quét hóa đơn bằng AI',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                ),
+                icon: _isScanningAI ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.document_scanner, color: Colors.blueAccent),
+                label: Text(_isScanningAI ? 'AI đang phân tích ảnh...' : '✨ Quét hóa đơn bằng AI', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: const BorderSide(color: Colors.blueAccent, width: 1.5),
@@ -246,13 +235,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.green, size: 16),
                   const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Đã đính kèm: ${_receiptImage!.name}',
-                      style: const TextStyle(fontSize: 12, color: Colors.green),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                  Expanded(child: Text('Đã đính kèm: ${_receiptImage!.name}', style: const TextStyle(fontSize: 12, color: Colors.green), overflow: TextOverflow.ellipsis)),
                 ],
               ),
             ],
@@ -266,37 +249,29 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _isIncome = false),
+                      onTap: () => setState(() {
+                        _isIncome = false;
+                        _selectedCategoryId = null; // 🚀 BÍ QUYẾT: Reset chọn mục khi đổi sang Chi
+                      }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: !_isIncome ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: !_isIncome ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
-                        ),
+                        decoration: BoxDecoration(color: !_isIncome ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(8), boxShadow: !_isIncome ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : []),
                         alignment: Alignment.center,
-                        child: Text(
-                          'Tiền ra (Chi)',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: !_isIncome ? const Color(0xFFE74C3C) : Colors.grey.shade500),
-                        ),
+                        child: Text('Tiền ra (Chi)', style: TextStyle(fontWeight: FontWeight.bold, color: !_isIncome ? const Color(0xFFE74C3C) : Colors.grey.shade500)),
                       ),
                     ),
                   ),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => setState(() => _isIncome = true),
+                      onTap: () => setState(() {
+                        _isIncome = true;
+                        _selectedCategoryId = null; // 🚀 BÍ QUYẾT: Reset chọn mục khi đổi sang Thu
+                      }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _isIncome ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: _isIncome ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
-                        ),
+                        decoration: BoxDecoration(color: _isIncome ? Colors.white : Colors.transparent, borderRadius: BorderRadius.circular(8), boxShadow: _isIncome ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : []),
                         alignment: Alignment.center,
-                        child: Text(
-                          'Tiền vào (Thu)',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: _isIncome ? const Color(0xFF27AE60) : Colors.grey.shade500),
-                        ),
+                        child: Text('Tiền vào (Thu)', style: TextStyle(fontWeight: FontWeight.bold, color: _isIncome ? const Color(0xFF27AE60) : Colors.grey.shade500)),
                       ),
                     ),
                   ),
@@ -305,47 +280,79 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // 🛠️ ĐÃ THÊM: Giao diện Dropdown chọn Ví
-            DropdownButtonFormField<int>(
-              value: _selectedWalletId,
-              decoration: InputDecoration(
-                labelText: 'Chọn Ví',
-                prefixIcon: const Icon(Icons.account_balance_wallet, color: Color(0xFF27AE60)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              items: _wallets.map((wallet) {
-                return DropdownMenuItem<int>(
-                  value: wallet['id'],
-                  child: Text(wallet['name']),
+            BlocBuilder<WalletBloc, WalletState>(
+              builder: (context, state) {
+                List<dynamic> walletsList = [];
+                if (state is WalletLoaded) {
+                  walletsList = state.wallets;
+                  if (_selectedWalletId == null && walletsList.isNotEmpty) {
+                    _selectedWalletId = walletsList.first.id;
+                  }
+                }
+
+                return DropdownButtonFormField<int>(
+                  value: _selectedWalletId,
+                  decoration: InputDecoration(
+                    labelText: 'Chọn Ví',
+                    prefixIcon: const Icon(Icons.account_balance_wallet, color: Color(0xFF27AE60)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  items: walletsList.map((wallet) {
+                    return DropdownMenuItem<int>(
+                      value: wallet.id,
+                      child: Text(wallet.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setState(() => _selectedWalletId = value),
                 );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedWalletId = value),
+              },
             ),
             const SizedBox(height: 16),
 
-            // 🛠️ ĐÃ THÊM: Giao diện Dropdown chọn Danh mục
-            DropdownButtonFormField<int>(
-              value: _selectedCategoryId,
-              decoration: InputDecoration(
-                labelText: 'Chọn Danh mục',
-                prefixIcon: const Icon(Icons.category, color: Colors.blueAccent),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              ),
-              items: _categories.map((category) {
-                return DropdownMenuItem<int>(
-                  value: category['id'],
-                  child: Row(
-                    children: [
-                      Icon(category['icon'], color: category['color'], size: 20),
-                      const SizedBox(width: 12),
-                      Text(category['name']),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedCategoryId = value),
+            // 🚀 ĐÃ NÂNG CẤP: DÙNG CATEGORY BLOC + LỌC DATA TỪ ENTITY
+            BlocBuilder<CategoryBloc, CategoryState>(
+              builder: (context, state) {
+                if (state is CategoryLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is CategoryLoaded) {
+                  // Lọc: Nếu _isIncome = true thì lấy type "income", ngược lại lấy "expense"
+                  final targetType = _isIncome ? 'income' : 'expense';
+                  final filteredCategories = state.categories.where((cat) => cat.type == targetType).toList();
+
+                  // Tự động gán ID hợp lệ đầu tiên nếu chưa chọn
+                  if (_selectedCategoryId == null && filteredCategories.isNotEmpty) {
+                    _selectedCategoryId = filteredCategories.first.id;
+                  } else if (!filteredCategories.any((cat) => cat.id == _selectedCategoryId) && filteredCategories.isNotEmpty) {
+                    _selectedCategoryId = filteredCategories.first.id;
+                  }
+
+                  return DropdownButtonFormField<int>(
+                    value: _selectedCategoryId,
+                    decoration: InputDecoration(
+                      labelText: 'Chọn Danh mục',
+                      prefixIcon: Icon(_isIncome ? Icons.account_balance : Icons.category, color: Colors.blueAccent),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    items: filteredCategories.map((category) {
+                      return DropdownMenuItem<int>(
+                        value: category.id, // 🛠️ Dùng thuộc tính của Entity
+                        child: Row(
+                          children: [
+                            Icon(_getIconForCategory(category.name), color: Colors.blueGrey, size: 20),
+                            const SizedBox(width: 12),
+                            Text(category.name), // 🛠️ Dùng thuộc tính của Entity
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) => setState(() => _selectedCategoryId = value),
+                  );
+                } else {
+                  return const Text('Chưa tải được danh mục.');
+                }
+              },
             ),
             const SizedBox(height: 20),
 
@@ -372,10 +379,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                 Expanded(
                   child: TextField(
                     controller: _noteController,
-                    decoration: const InputDecoration(
-                      hintText: 'Thêm ghi chú (Ăn trưa, đổ xăng...)',
-                      border: InputBorder.none,
-                    ),
+                    decoration: const InputDecoration(hintText: 'Thêm ghi chú (Ăn trưa, đổ xăng...)', border: InputBorder.none),
                   ),
                 ),
               ],
@@ -389,12 +393,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
                 children: [
                   Icon(Icons.calendar_today, color: Colors.grey.shade400, size: 22),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-                      style: const TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                  ),
+                  Expanded(child: Text("${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}", style: const TextStyle(fontSize: 16, color: Colors.black87))),
                 ],
               ),
             ),
@@ -405,11 +404,7 @@ class _AddTransactionBottomSheetState extends State<AddTransactionBottomSheet> {
               height: 50,
               child: ElevatedButton(
                 onPressed: _submitTransaction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF27AE60),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF27AE60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                 child: const Text('Lưu giao dịch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
