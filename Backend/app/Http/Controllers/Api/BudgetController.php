@@ -9,82 +9,88 @@ use App\Models\Budget;
 class BudgetController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lấy danh sách ngân sách của user đang đăng nhập
      */
     public function index(Request $request)
     {
-        $budgets = Budget::where('user_id', $request->user()->id)
-            ->whereMonth('start_date', now()->month)
-            ->with('category')
-            ->get();
+        // 🛠️ Không gán cứng: Chỉ lấy ngân sách của user hiện tại
+        $budgets = Budget::where('user_id', $request->user()->id)->get();
         return response()->json($budgets);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Tạo ngân sách mới
      */
     public function store(Request $request)
     {
+        // 🚀 BÍ QUYẾT FIX LỖI: Hứng cả 'amount' hoặc 'amount_limit' từ Flutter gửi lên
+        $receivedAmount = $request->input('amount_limit') ?? $request->input('amount');
+        
+        // Gắn ngược lại vào request để validate
+        $request->merge(['amount_limit' => $receivedAmount]);
+
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'amount_limit' => 'required|numeric|min:0',
-            'alert_threshold' => 'nullable|numeric|min:0|max:1', // Ví dụ: 0.8 (80%)
+            'amount_limit' => 'required|numeric|min:0', // Phải dùng amount_limit cho khớp Database
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'alert_threshold' => 'nullable|numeric',
         ]);
 
-        // Sử dụng updateOrCreate để tránh một danh mục có 2 ngân sách trong 1 tháng
-        $budget = Budget::updateOrCreate(
-            [
-                'user_id' => $request->user()->id,
-                'category_id' => $validated['category_id'],
-                'start_date' => now()->startOfMonth(),
-            ],
-            [
-                'amount_limit' => $validated['amount_limit'],
-                'alert_threshold' => $validated['alert_threshold'] ?? 0.8,
-                'end_date' => now()->endOfMonth(),
-            ]
-        );
-
-        return response()->json([
-            'message' => 'Thiết lập ngân sách thành công',
-            'data' => $budget
+        // 🛠️ Không gán cứng: Gán user_id tự động từ Token
+        $budget = Budget::create([
+            'user_id' => $request->user()->id,
+            'category_id' => $validated['category_id'],
+            'amount_limit' => $validated['amount_limit'], // Lưu đúng tên cột
+            'spent_amount' => 0, // Mới tạo thì tiêu = 0
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'alert_threshold' => $validated['alert_threshold'] ?? 80, // Mặc định cảnh báo khi tiêu hết 80%
         ]);
+
+        return response()->json($budget, 201);
     }
 
     /**
-     * Display the specified resource.
+     * Xem chi tiết ngân sách
      */
-    public function show(Request $request, string $id)
+    public function show(Request $request, $id)
     {
         $budget = Budget::where('user_id', $request->user()->id)->findOrFail($id);
         return response()->json($budget);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Cập nhật ngân sách
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         $budget = Budget::where('user_id', $request->user()->id)->findOrFail($id);
 
+        $receivedAmount = $request->input('amount_limit') ?? $request->input('amount');
+        if ($receivedAmount !== null) {
+            $request->merge(['amount_limit' => $receivedAmount]);
+        }
+
         $validated = $request->validate([
+            'category_id' => 'exists:categories,id',
             'amount_limit' => 'numeric|min:0',
-            'alert_threshold' => 'nullable|numeric|min:0|max:1',
+            'start_date' => 'date',
+            'end_date' => 'date|after_or_equal:start_date',
+            'alert_threshold' => 'nullable|numeric',
         ]);
 
         $budget->update($validated);
-
         return response()->json($budget);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Xóa ngân sách
      */
-    public function destroy(Request $request, string $id)
+    public function destroy(Request $request, $id)
     {
         $budget = Budget::where('user_id', $request->user()->id)->findOrFail($id);
         $budget->delete();
-
-        return response()->json(['message' => 'Ngân sách đã được xóa']);
+        return response()->json(['message' => 'Đã xóa ngân sách thành công']);
     }
 }

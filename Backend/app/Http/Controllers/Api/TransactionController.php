@@ -72,7 +72,10 @@ class TransactionController extends Controller
 
         try {
             // 3. Tạo giao dịch mới
-            $transaction = Transaction::create($validated);
+            // $transaction = Transaction::create($validated);
+            $transactionData = $validated;
+            $transactionData['user_id'] = $request->user()->id; // Lấy ID của User thật gắn vào
+            $transaction = Transaction::create($transactionData);
 
             // 4. Cập nhật số dư của Ví (Tùy chọn: nếu app của ông đang dựa vào cột balance của Wallet)
             if ($validated['type'] === 'Thu') {
@@ -84,14 +87,13 @@ class TransactionController extends Controller
 
             // 5. CẬP NHẬT NGÂN SÁCH (Phần ông đang cần nhất đây)
             if ($validated['type'] === 'Chi') {
-                // Tìm xem trong tháng này có ngân sách nào thuộc Category này không
+                // Tìm ngân sách: Trùng User, trùng Category, và ngày giao dịch NẰM TRONG chu kỳ ngân sách
                 $budget = Budget::where('user_id', $request->user()->id)
                     ->where('category_id', $validated['category_id'])
-                    ->whereMonth('start_date', date('m', strtotime($validated['date'])))
-                    ->whereYear('start_date', date('Y', strtotime($validated['date'])))
+                    ->whereDate('start_date', '<=', $validated['date'])
+                    ->whereDate('end_date', '>=', $validated['date'])
                     ->first();
 
-                // Nếu có ngân sách, cộng tiền vừa chi vào spent_amount
                 if ($budget) {
                     $budget->spent_amount += $validated['amount'];
                     $budget->save();
@@ -126,10 +128,10 @@ class TransactionController extends Controller
             'type' => 'in:Thu,Chi',
             'date' => 'date',
         ]);
-        // $transaction = $this->transactionService->updateTransaction($id, $request->all(), $request->user()->id);
-        // return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
-        $transaction = $this->transactionService->updateTransaction($id, $request->all(), 1);
+        $transaction = $this->transactionService->updateTransaction($id, $request->all(), $request->user()->id);
         return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
+        // $transaction = $this->transactionService->updateTransaction($id, $request->all(), 1);
+        // return response()->json(['message' => 'Cập nhật thành công', 'data' => $transaction]);
     }
 
     public function destroy(Request $request, $id)

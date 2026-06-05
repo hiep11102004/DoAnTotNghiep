@@ -13,13 +13,9 @@ class WalletController extends Controller
      */
     public function index(Request $request)
     {
-        // $wallets = Wallet::where('user_id', $request->user()->id)->get();
-        // return response()->json($wallets);
-        // 🚀 FIX TẠM: Ép cứng lấy Ví của User có ID = 1 để test UI trước.
-        // (Khi nào ráp luồng Login xong thì ông mở lại code cũ: $request->user()->id)
-        $wallets = \App\Models\Wallet::where('user_id', 1)->get();
+        // 🛠️ ĐÃ MỞ KHÓA: Chỉ lấy ví của đúng user đang đăng nhập
+        $wallets = Wallet::where('user_id', $request->user()->id)->get();
         
-        // Trả về thẳng mảng JSON
         return response()->json($wallets);
     }
 
@@ -36,13 +32,13 @@ class WalletController extends Controller
         ]);
 
         $wallet = Wallet::create([
-            // 'user_id' => $request->user()->id,
-            'user_id' => 1,
+            // 🛠️ ĐÃ MỞ KHÓA: Gán ví cho đúng user đang đăng nhập
+            'user_id' => $request->user()->id,
             'name' => $validated['name'],
             'type' => $validated['type'],
             'currency' => $validated['currency'],
             'initial_balance' => $validated['initial_balance'],
-            'current_balance' => $validated['initial_balance'], // Lúc mới tạo thì số dư hiện tại = số dư ban đầu
+            'current_balance' => $validated['initial_balance'], 
         ]);
 
         return response()->json($wallet, 201);
@@ -79,8 +75,11 @@ class WalletController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-        //
+        // Có thể bổ sung hàm xóa sau nếu cần
+        $wallet = Wallet::where('user_id', $request->user()->id)->findOrFail($id);
+        $wallet->delete();
+        return response()->json(['message' => 'Đã xóa ví thành công']);
     }
 }
