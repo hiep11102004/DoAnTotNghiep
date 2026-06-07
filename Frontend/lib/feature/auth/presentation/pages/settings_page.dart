@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:financial_app/core/constants/app_constants.dart';
+import 'package:financial_app/core/constants/app_theme.dart';
 import 'package:financial_app/core/network/dio_client.dart';
 import 'package:flutter/material.dart';
 
@@ -67,13 +68,23 @@ class _SettingsPageState extends State<SettingsPage> {
       await _dio.put(AppConstants.userSettings, data: body);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã lưu cài đặt'), backgroundColor: Color(0xFF27AE60)),
+          SnackBar(
+            content: const Text('Đã lưu cài đặt'),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi lưu cài đặt: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Lỗi lưu cài đặt: $e'),
+            backgroundColor: AppColors.expense,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          ),
         );
       }
     } finally {
@@ -93,28 +104,26 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
-      appBar: AppBar(
-        title: const Text('Cài đặt', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF2C3E50)),
+      appBar: AppWidgets.appBar(
+        title: 'Cài đặt',
         actions: [
           if (!_isLoading)
             TextButton(
               onPressed: _isSaving ? null : _saveSettings,
               child: _isSaving
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Lưu', style: TextStyle(color: Color(0xFF27AE60), fontWeight: FontWeight.bold, fontSize: 16)),
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary))
+                  : Text('Lưu', style: AppTextStyles.body.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
+                const SizedBox(height: AppSpacing.sm),
                 _buildSection(
-                  title: 'Ngôn ngữ & Giao diện',
+                  title: 'NGÔN NGỮ & GIAO DIỆN',
                   children: [
                     _buildDropdownTile(
                       icon: Icons.language,
@@ -132,56 +141,57 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.xl),
                 _buildSection(
-                  title: 'Tính năng AI',
+                  title: 'TÍNH NĂNG AI',
                   children: [
                     SwitchListTile(
                       secondary: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
                         child: const Icon(Icons.psychology_outlined, color: Colors.purple, size: 20),
                       ),
-                      title: const Text('Bật AI Coaching', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Nhận phân tích tài chính từ AI', style: TextStyle(fontSize: 12)),
+                      title: Text('Bật AI Coaching', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
+                      subtitle: Text('Nhận phân tích tài chính từ AI', style: AppTextStyles.caption),
                       value: _enableAI,
-                      activeColor: const Color(0xFF27AE60),
+                      activeColor: AppColors.primary,
                       onChanged: (v) => setState(() => _enableAI = v),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.xl),
                 _buildSection(
-                  title: 'Thông báo',
+                  title: 'THÔNG BÁO',
                   children: [
                     ListTile(
                       leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.alarm_outlined, color: Colors.orange, size: 20),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        decoration: BoxDecoration(color: AppColors.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
+                        child: Icon(Icons.alarm_outlined, color: AppColors.warning, size: 20),
                       ),
-                      title: const Text('Nhắc nhở hàng ngày', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      title: Text('Nhắc nhở hàng ngày', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
                       subtitle: Text(
                         _reminderTime != null
                             ? '${_reminderTime!.hour.toString().padLeft(2, '0')}:${_reminderTime!.minute.toString().padLeft(2, '0')}'
                             : 'Chưa đặt giờ nhắc',
-                        style: const TextStyle(fontSize: 12),
+                        style: AppTextStyles.caption,
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (_reminderTime != null)
                             IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                              icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
                               onPressed: () => setState(() => _reminderTime = null),
                             ),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
+                          const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
                         ],
                       ),
                       onTap: _pickReminderTime,
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.xxxl),
               ],
             ),
     );
@@ -192,11 +202,11 @@ class _SettingsPageState extends State<SettingsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.grey.shade500, letterSpacing: 0.5)),
+          padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.sm),
+          child: Text(title, style: AppTextStyles.label),
         ),
         Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: AppWidgets.cardDecoration(),
           child: Column(children: children),
         ),
       ],
@@ -212,15 +222,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return ListTile(
       leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: const Color(0xFF27AE60).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: const Color(0xFF27AE60), size: 20),
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(AppRadius.sm)),
+        child: Icon(icon, color: AppColors.primary, size: 20),
       ),
-      title: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      title: Text(label, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
       trailing: DropdownButton<String>(
         value: value,
         underline: const SizedBox(),
-        style: const TextStyle(fontSize: 13, color: Color(0xFF2C3E50)),
+        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
         items: items.entries
             .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
             .toList(),

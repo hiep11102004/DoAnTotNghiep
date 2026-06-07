@@ -32,7 +32,8 @@ class AICoachingBloc extends Bloc<AICoachingEvent, AICoachingState> {
 
     on<CompleteAITaskEvent>((event, emit) async {
       try {
-        await aiDatasource.completeTask(event.taskId);
+        final xp = await aiDatasource.completeTask(event.taskId);
+        emit(TaskCompleteSuccess('+$xp XP nhận được!', xp));
         add(LoadAITasksEvent());
       } catch (e) {
         emit(AITasksError(e.toString()));

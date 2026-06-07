@@ -6,6 +6,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'login_page.dart';
 import 'settings_page.dart';
+import '../../../../core/constants/app_theme.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -70,56 +71,100 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildAvatarSection() {
     final initials = _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U';
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 44,
-          backgroundColor: const Color(0xFF27AE60),
-          child: Text(initials, style: const TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold)),
-        ),
-        const SizedBox(height: 12),
-        Text(_userName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
-        const SizedBox(height: 4),
-        Text(_userEmail, style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowBase.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 44,
+                  backgroundColor: AppColors.primary,
+                  child: Text(initials, style: const TextStyle(fontSize: 32, color: AppColors.textOnPrimary, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(_userName, style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.xs),
+          Text(_userEmail, style: AppTextStyles.bodySmall),
+        ],
+      ),
     );
   }
 
   Widget _buildMenuSection() {
-    return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        children: [
-          _buildMenuItem(
-            icon: Icons.savings_outlined,
-            label: 'Mục tiêu tiết kiệm',
-            color: Colors.teal,
-            onTap: () => Navigator.pushNamed(context, '/saving-goals'),
+    return Column(
+      children: [
+        // Main menu card
+        Container(
+          decoration: AppWidgets.cardDecoration(),
+          child: Column(
+            children: [
+              _buildMenuItem(
+                icon: Icons.savings_outlined,
+                label: 'Mục tiêu tiết kiệm',
+                color: Colors.teal,
+                onTap: () => Navigator.pushNamed(context, '/saving-goals'),
+              ),
+              _divider(),
+              _buildMenuItem(
+                icon: Icons.notifications_outlined,
+                label: 'Thông báo',
+                color: Colors.orange,
+                onTap: () => Navigator.pushNamed(context, '/notifications'),
+              ),
+              _divider(),
+              _buildMenuItem(
+                icon: Icons.settings_outlined,
+                label: 'Cài đặt',
+                color: Colors.blueGrey,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
+              ),
+            ],
           ),
-          _divider(),
-          _buildMenuItem(
-            icon: Icons.notifications_outlined,
-            label: 'Thông báo',
-            color: Colors.orange,
-            onTap: () => Navigator.pushNamed(context, '/notifications'),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Logout card — separate, highlighted
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.expense.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.expense.withOpacity(0.15)),
           ),
-          _divider(),
-          _buildMenuItem(
-            icon: Icons.settings_outlined,
-            label: 'Cài đặt',
-            color: Colors.blueGrey,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
-          ),
-          _divider(),
-          _buildMenuItem(
-            icon: Icons.logout,
+          child: _buildMenuItem(
+            icon: Icons.logout_rounded,
             label: 'Đăng xuất',
-            color: Colors.red,
+            color: AppColors.expense,
             onTap: _confirmLogout,
-            textColor: Colors.red,
+            textColor: AppColors.expense,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -132,12 +177,12 @@ class _ProfilePageState extends State<ProfilePage> {
   }) {
     return ListTile(
       leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(AppRadius.sm)),
         child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textColor ?? const Color(0xFF2C3E50))),
-      trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+      title: Text(label, style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600, color: textColor ?? AppColors.textPrimary)),
+      trailing: Icon(Icons.chevron_right_rounded, color: textColor?.withOpacity(0.5) ?? AppColors.textHint, size: 20),
       onTap: onTap,
     );
   }

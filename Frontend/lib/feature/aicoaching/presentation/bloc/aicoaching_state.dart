@@ -48,6 +48,13 @@ class ChallengeActionSuccess extends AICoachingState {
   ChallengeActionSuccess(this.message);
 }
 
+// Task complete
+class TaskCompleteSuccess extends AICoachingState {
+  final String message;
+  final int xpEarned;
+  TaskCompleteSuccess(this.message, this.xpEarned);
+}
+
 // Badges
 class BadgesLoading extends AICoachingState {}
 

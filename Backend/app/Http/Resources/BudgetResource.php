@@ -13,6 +13,7 @@ class BudgetResource extends JsonResource
             'id'              => $this->id,
             'user_id'         => $this->user_id,
             'category_id'     => $this->category_id,
+            'category_name'   => $this->category?->name ?? '',
             'amount_limit'    => (float) $this->amount_limit,
             'spent_amount'    => (float) $this->spent_amount,
             'start_date'      => $this->start_date,

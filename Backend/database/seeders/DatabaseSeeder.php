@@ -34,11 +34,38 @@ class DatabaseSeeder extends Seeder
             'daily_reminder_time' => '21:00:00',
         ]);
 
-        // 3. Bảng Categories (Mặc định) — type dùng 'income'/'expense' để đồng bộ với Flutter và API
-        $catFood   = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Ăn uống',       'type' => 'expense', 'is_default' => true, 'icon_color' => 'orange', 'icon' => 'fastfood']);
-        $catRent   = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Tiền trọ',      'type' => 'expense', 'is_default' => true, 'icon_color' => 'blue',   'icon' => 'home']);
-        $catSalary = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Lương làm thêm','type' => 'income',  'is_default' => true, 'icon_color' => 'green',  'icon' => 'attach_money']);
-        $catTravel = DB::table('categories')->insertGetId(['user_id' => $userId, 'name' => 'Di chuyển',     'type' => 'expense', 'is_default' => true, 'icon_color' => 'yellow', 'icon' => 'directions_car']);
+        // 3. Danh mục hệ thống mặc định — user_id = null, is_default = true
+        //    Hiển thị cho tất cả user, không bị xóa khi user bị xóa
+
+        // -- CHI TIÊU (18 mục) --
+        $catFood    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Ăn uống',                    'type' => 'expense', 'is_default' => true, 'icon_color' => 'orange',    'icon' => 'fastfood']);
+        $catTravel  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Di chuyển',                  'type' => 'expense', 'is_default' => true, 'icon_color' => 'blue',       'icon' => 'directions_car']);
+        $catShop    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Mua sắm',                    'type' => 'expense', 'is_default' => true, 'icon_color' => 'pink',       'icon' => 'shopping_bag']);
+        $catEntmt   = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Giải trí',                   'type' => 'expense', 'is_default' => true, 'icon_color' => 'purple',     'icon' => 'movie']);
+        $catBill    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Hóa đơn & Tiện ích',         'type' => 'expense', 'is_default' => true, 'icon_color' => 'amber',      'icon' => 'receipt_long']);
+        $catHealth  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Sức khỏe & Y tế',            'type' => 'expense', 'is_default' => true, 'icon_color' => 'teal',       'icon' => 'medical_services']);
+        $catEdu     = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Giáo dục',                   'type' => 'expense', 'is_default' => true, 'icon_color' => 'indigo',     'icon' => 'school']);
+        $catRent    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Tiền nhà & Thuê trọ',        'type' => 'expense', 'is_default' => true, 'icon_color' => 'brown',      'icon' => 'home']);
+        $catTrip    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Du lịch',                    'type' => 'expense', 'is_default' => true, 'icon_color' => 'cyan',       'icon' => 'flight']);
+        $catFashion = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Quần áo & Thời trang',       'type' => 'expense', 'is_default' => true, 'icon_color' => 'red',        'icon' => 'checkroom']);
+        $catBeauty  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Làm đẹp & Chăm sóc bản thân','type' => 'expense', 'is_default' => true, 'icon_color' => 'rose',       'icon' => 'spa']);
+        $catHome    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Đồ gia dụng',                'type' => 'expense', 'is_default' => true, 'icon_color' => 'green',      'icon' => 'chair']);
+        $catSport   = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Thể thao & Gym',             'type' => 'expense', 'is_default' => true, 'icon_color' => 'deepOrange', 'icon' => 'fitness_center']);
+        $catGift    = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Quà tặng',                   'type' => 'expense', 'is_default' => true, 'icon_color' => 'pink',       'icon' => 'card_giftcard']);
+        $catSaving  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Tiết kiệm & Đầu tư',        'type' => 'expense', 'is_default' => true, 'icon_color' => 'green',      'icon' => 'savings']);
+        $catBankFee = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Phí ngân hàng',              'type' => 'expense', 'is_default' => true, 'icon_color' => 'grey',       'icon' => 'account_balance']);
+        $catInsure  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Bảo hiểm',                  'type' => 'expense', 'is_default' => true, 'icon_color' => 'blue',       'icon' => 'security']);
+        $catOtherEx = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Chi phí khác',               'type' => 'expense', 'is_default' => true, 'icon_color' => 'grey',       'icon' => 'more_horiz']);
+
+        // -- THU NHẬP (8 mục) --
+        $catSalary  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Lương',                      'type' => 'income',  'is_default' => true, 'icon_color' => 'green',      'icon' => 'payments']);
+        $catBonus   = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Thưởng',                     'type' => 'income',  'is_default' => true, 'icon_color' => 'yellow',     'icon' => 'emoji_events']);
+        $catFreelce = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Làm thêm & Freelance',       'type' => 'income',  'is_default' => true, 'icon_color' => 'blue',       'icon' => 'laptop']);
+        $catBiz     = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Kinh doanh',                 'type' => 'income',  'is_default' => true, 'icon_color' => 'orange',     'icon' => 'store']);
+        $catInvest  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Đầu tư & Lãi suất',         'type' => 'income',  'is_default' => true, 'icon_color' => 'green',      'icon' => 'trending_up']);
+        $catGiftIn  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Quà & Được tặng',            'type' => 'income',  'is_default' => true, 'icon_color' => 'pink',       'icon' => 'redeem']);
+        $catRefund  = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Hoàn tiền & Bồi thường',    'type' => 'income',  'is_default' => true, 'icon_color' => 'blue',       'icon' => 'replay']);
+        $catOtherIn = DB::table('categories')->insertGetId(['user_id' => null, 'name' => 'Thu nhập khác',              'type' => 'income',  'is_default' => true, 'icon_color' => 'grey',       'icon' => 'more_horiz']);
 
         // 4. Bảng Wallets
         $walletCash = DB::table('wallets')->insertGetId([

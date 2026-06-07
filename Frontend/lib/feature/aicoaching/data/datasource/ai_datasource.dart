@@ -9,10 +9,9 @@ class AIDatasource implements AICoachingDataSource {
   @override
   Future<AICoachingModel> getCoachings() async {
     try {
-      // Gemini API mất 15-40s → cần timeout riêng, không dùng default 10s
       final response = await dio.get(
         '/ai/reviews',
-        options: Options(receiveTimeout: const Duration(seconds: 60)),
+        options: Options(receiveTimeout: const Duration(seconds: 90)),
       );
       if (response.statusCode == 200) {
         return AICoachingModel.fromJson(response.data['data']);
@@ -36,9 +35,14 @@ class AIDatasource implements AICoachingDataSource {
     }
   }
 
-  Future<void> completeTask(int id) async {
+  // Returns XP earned (0 if failed)
+  Future<int> completeTask(int id) async {
     try {
-      await dio.post('/ai/tasks/$id/complete');
+      final response = await dio.post('/ai/tasks/$id/complete');
+      if (response.statusCode == 200) {
+        return response.data['xp'] ?? 0;
+      }
+      return 0;
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Lỗi hoàn thành nhiệm vụ');
     }
@@ -79,11 +83,14 @@ class AIDatasource implements AICoachingDataSource {
   }
 
   @override
-  Future<AICoachingModel> getCoachingById(String id) async => throw UnimplementedError();
+  Future<AICoachingModel> getCoachingById(String id) async =>
+      throw UnimplementedError();
   @override
-  Future<AICoachingModel> createCoaching(AICoachingModel coaching) async => throw UnimplementedError();
+  Future<AICoachingModel> createCoaching(AICoachingModel coaching) async =>
+      throw UnimplementedError();
   @override
-  Future<AICoachingModel> updateCoaching(AICoachingModel coaching) async => throw UnimplementedError();
+  Future<AICoachingModel> updateCoaching(AICoachingModel coaching) async =>
+      throw UnimplementedError();
   @override
   Future<void> deleteCoaching(String id) async => throw UnimplementedError();
 }

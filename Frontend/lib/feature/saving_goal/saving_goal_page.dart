@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'saving_goal_bloc.dart';
+import 'package:financial_app/core/constants/app_theme.dart';
+  import 'saving_goal_bloc.dart';
 import 'saving_goal_datasource.dart';
 
 class SavingGoalPage extends StatefulWidget {
@@ -30,24 +31,31 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
       listener: (context, state) {
         if (state is SavingGoalActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.income,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+            ),
           );
         } else if (state is SavingGoalError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.expense,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+            ),
           );
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F7F6),
-        appBar: AppBar(
-          title: const Text('Mục tiêu tiết kiệm', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Color(0xFF2C3E50)),
+        backgroundColor: AppColors.background,
+        appBar: AppWidgets.appBar(
+          title: 'Mục tiêu tiết kiệm',
           actions: [
             IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF27AE60)),
+              icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
               onPressed: () => _showAddGoalSheet(context),
             ),
           ],
@@ -59,17 +67,12 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
             }
             if (state is SavingGoalLoaded) {
               if (state.goals.isEmpty) {
-                return const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.savings_outlined, size: 64, color: Colors.grey),
-                      SizedBox(height: 12),
-                      Text('Chưa có mục tiêu nào', style: TextStyle(color: Colors.grey, fontSize: 15)),
-                    ],
-                  ),
-                );
-              }
+              return AppWidgets.emptyState(
+                icon: Icons.savings_outlined,
+                title: 'Chưa có mục tiêu nào',
+                subtitle: 'Tạo mục tiêu tiết kiệm đầu tiên để bắt đầu hành trình tài chính',
+              );
+            }
               return RefreshIndicator(
                 onRefresh: () async => context.read<SavingGoalBloc>().add(FetchSavingGoals()),
                 child: ListView.builder(
@@ -90,74 +93,139 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
   }
 
   Widget _buildGoalCard(BuildContext context, SavingGoalModel goal) {
-    final progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0) : 0.0;
+    final double progress = goal.targetAmount > 0
+        ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0)
+        : 0.0;
     final percent = (progress * 100).toStringAsFixed(0);
+    final isCompleted = goal.status == 'Hoàn thành' || progress >= 1.0;
+    final remaining = goal.targetAmount - goal.currentAmount;
+
+    // Dynamic progress color
+    Color progressColor;
+    Color progressBg;
+    if (isCompleted) {
+      progressColor = AppColors.income;
+      progressBg = AppColors.incomeBg;
+    } else if (progress >= 0.8) {
+      progressColor = AppColors.warning;
+      progressBg = AppColors.warningBg;
+    } else {
+      progressColor = AppColors.primary;
+      progressBg = AppColors.primaryLight;
+    }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-      ),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      decoration: AppWidgets.cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(goal.goalName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') _showEditGoalSheet(context, goal);
-                  if (value == 'delete') _confirmDelete(context, goal.id, goal.goalName);
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Sửa')])),
-                  const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: Colors.red), SizedBox(width: 8), Text('Xóa', style: TextStyle(color: Colors.red))])),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_formatCurrency(goal.currentAmount), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF27AE60))),
-              Text(_formatCurrency(goal.targetAmount), style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(progress >= 1.0 ? Colors.green : const Color(0xFF27AE60)),
-              minHeight: 8,
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.sm, AppSpacing.sm),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(color: progressBg, borderRadius: BorderRadius.circular(AppRadius.md)),
+                  child: Icon(Icons.savings_rounded, color: progressColor, size: 20),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(goal.goalName, style: AppTextStyles.bodyLarge),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary, size: 20),
+                  onSelected: (value) {
+                    if (value == 'edit') _showEditGoalSheet(context, goal);
+                    if (value == 'delete') _confirmDelete(context, goal.id, goal.goalName);
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 16), SizedBox(width: 8), Text('Sửa')])),
+                    PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outlined, size: 16, color: AppColors.expense), const SizedBox(width: 8), Text('Xóa', style: TextStyle(color: AppColors.expense))])),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('$percent% hoàn thành', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-              if (goal.deadline != null)
-                Text('Hạn: ${goal.deadline}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: goal.status == 'Hoàn thành' ? Colors.green.shade50 : Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              children: [
+                // Progress bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: AppColors.border,
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                    minHeight: 8,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Amount row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Đã tiết kiệm', style: AppTextStyles.caption),
+                        Text(_formatCurrency(goal.currentAmount), style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700, color: progressColor)),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(isCompleted ? 'Hoàn thành!' : 'Còn thiếu', style: AppTextStyles.caption),
+                        Text(
+                          isCompleted ? '🎉 ${_formatCurrency(goal.targetAmount)}' : _formatCurrency(remaining),
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: isCompleted ? AppColors.income : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.sm),
+
+                // Footer: percent + deadline + status badge
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      decoration: BoxDecoration(color: progressBg, borderRadius: BorderRadius.circular(AppRadius.full)),
+                      child: Text('$percent%', style: AppTextStyles.caption.copyWith(color: progressColor, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    if (goal.deadline != null)
+                      Text('Hạn: ${goal.deadline}', style: AppTextStyles.caption),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: isCompleted ? AppColors.incomeBg : AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                      ),
+                      child: Text(
+                        goal.status,
+                        style: AppTextStyles.caption.copyWith(
+                          color: isCompleted ? AppColors.income : AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            child: Text(goal.status, style: TextStyle(fontSize: 11, color: goal.status == 'Hoàn thành' ? Colors.green : Colors.blue, fontWeight: FontWeight.bold)),
           ),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );
@@ -184,32 +252,53 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 20, right: 20, top: 20),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: AppSpacing.xl, right: AppSpacing.xl, top: AppSpacing.xl),
         child: StatefulBuilder(
           builder: (ctx, setSheetState) => Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(existing == null ? 'Thêm mục tiêu' : 'Sửa mục tiêu',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(existing == null ? 'Thêm mục tiêu' : 'Sửa mục tiêu', style: AppTextStyles.h3),
+              const SizedBox(height: AppSpacing.xl),
               TextField(
                 controller: nameCtrl,
-                decoration: InputDecoration(labelText: 'Tên mục tiêu', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                style: AppTextStyles.body,
+                decoration: AppWidgets.inputDecoration(
+                  label: 'Tên mục tiêu',
+                  prefixIcon: const Icon(Icons.flag_outlined, color: AppColors.primary),
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: targetCtrl,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Số tiền mục tiêu', suffixText: 'đ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                style: AppTextStyles.body,
+                decoration: AppWidgets.inputDecoration(
+                  label: 'Số tiền mục tiêu',
+                  prefixIcon: const Icon(Icons.track_changes_rounded, color: AppColors.primary),
+                  suffixText: 'đ',
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: currentCtrl,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Đã tiết kiệm được', suffixText: 'đ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                style: AppTextStyles.body,
+                decoration: AppWidgets.inputDecoration(
+                  label: 'Đã tiết kiệm được',
+                  prefixIcon: const Icon(Icons.savings_rounded, color: AppColors.primary),
+                  suffixText: 'đ',
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               GestureDetector(
                 onTap: () async {
                   final picked = await showDatePicker(
@@ -217,31 +306,48 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
                     initialDate: deadline != null ? DateTime.tryParse(deadline!) ?? DateTime.now() : DateTime.now(),
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2030),
+                    builder: (ctx, child) => Theme(
+                      data: Theme.of(ctx).copyWith(colorScheme: const ColorScheme.light(primary: AppColors.primary)),
+                      child: child!,
+                    ),
                   );
                   if (picked != null) {
                     setSheetState(() => deadline = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}');
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
                   child: Row(children: [
-                    const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(deadline ?? 'Chọn hạn chót (tuỳ chọn)', style: const TextStyle(fontSize: 14)),
+                    const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.textSecondary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      deadline ?? 'Chọn hạn chót (tuỳ chọn)',
+                      style: AppTextStyles.body.copyWith(color: deadline != null ? AppColors.textPrimary : AppColors.textHint),
+                    ),
                   ]),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: ElevatedButton(
                   onPressed: () {
                     final name = nameCtrl.text.trim();
-                    final target = double.tryParse(targetCtrl.text) ?? 0;
-                    final current = double.tryParse(currentCtrl.text) ?? 0;
+                    final target = double.tryParse(targetCtrl.text.replaceAll(',', '')) ?? 0;
+                    final current = double.tryParse(currentCtrl.text.replaceAll(',', '')) ?? 0;
                     if (name.isEmpty || target <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập tên và số tiền mục tiêu')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Vui lòng nhập tên và số tiền mục tiêu'),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                        ),
+                      );
                       return;
                     }
                     Navigator.pop(ctx);
@@ -251,11 +357,11 @@ class _SavingGoalPageState extends State<SavingGoalPage> {
                       context.read<SavingGoalBloc>().add(UpdateSavingGoal(id: existing.id, goalName: name, targetAmount: target, currentAmount: current, deadline: deadline, status: status));
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF27AE60), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: Text(existing == null ? 'Thêm mục tiêu' : 'Lưu thay đổi', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: AppWidgets.primaryButtonStyle(),
+                  child: Text(existing == null ? 'Thêm mục tiêu' : 'Lưu thay đổi', style: AppTextStyles.button),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),

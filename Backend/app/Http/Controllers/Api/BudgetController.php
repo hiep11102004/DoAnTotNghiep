@@ -16,8 +16,9 @@ class BudgetController extends Controller
      */
     public function index(Request $request)
     {
-        // 🛠️ Không gán cứng: Chỉ lấy ngân sách của user hiện tại
-        $budgets = Budget::where('user_id', $request->user()->id)->get();
+        $budgets = Budget::where('user_id', $request->user()->id)
+            ->with('category')
+            ->get();
         return response()->json(BudgetResource::collection($budgets));
     }
 
@@ -38,7 +39,7 @@ class BudgetController extends Controller
             'alert_threshold' => $validated['alert_threshold'] ?? 80,
         ]);
 
-        return response()->json(new BudgetResource($budget), 201);
+        return response()->json(new BudgetResource($budget->load('category')), 201);
     }
 
     /**
@@ -46,7 +47,7 @@ class BudgetController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $budget = Budget::where('user_id', $request->user()->id)->findOrFail($id);
+        $budget = Budget::where('user_id', $request->user()->id)->with('category')->findOrFail($id);
         return response()->json(new BudgetResource($budget));
     }
 
@@ -55,9 +56,9 @@ class BudgetController extends Controller
      */
     public function update(UpdateBudgetRequest $request, $id)
     {
-        $budget = Budget::where('user_id', $request->user()->id)->findOrFail($id);
+        $budget = Budget::where('user_id', $request->user()->id)->with('category')->findOrFail($id);
         $budget->update($request->validated());
-        return response()->json(new BudgetResource($budget));
+        return response()->json(new BudgetResource($budget->load('category')));
     }
 
     /**
