@@ -1,3 +1,4 @@
+import 'package:financial_app/feature/wallet/data/models/wallet_model.dart';
 import 'package:financial_app/feature/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:financial_app/feature/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_theme.dart';
 
 class AddWalletBottomSheet extends StatefulWidget {
-  const AddWalletBottomSheet({super.key});
+  final WalletModel? walletToEdit;
+
+  const AddWalletBottomSheet({super.key, this.walletToEdit});
 
   @override
   State<AddWalletBottomSheet> createState() => _AddWalletBottomSheetState();
@@ -15,8 +18,20 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
   final _nameController = TextEditingController();
   final _balanceController = TextEditingController();
 
+  bool get _isEditMode => widget.walletToEdit != null;
+
   // Wallet type is display-only (CreateWallet event doesn't support it yet)
   int _selectedTypeIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.walletToEdit;
+    if (existing != null) {
+      _nameController.text = existing.name;
+      _balanceController.text = existing.currentBalance.toStringAsFixed(0);
+    }
+  }
 
   static const _walletTypes = [
     {'label': 'Tiền mặt', 'icon': Icons.payments_rounded, 'color': Color(0xFF27AE60)},
@@ -46,9 +61,12 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
       return;
     }
 
-    context
-        .read<WalletBloc>()
-        .add(CreateWallet(name: name, initialBalance: balance));
+    final bloc = context.read<WalletBloc>();
+    if (_isEditMode) {
+      bloc.add(UpdateWallet(id: widget.walletToEdit!.id, name: name));
+    } else {
+      bloc.add(CreateWallet(name: name, initialBalance: balance));
+    }
     Navigator.of(context).pop(true);
   }
 
@@ -114,7 +132,8 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Thêm ví mới', style: AppTextStyles.h3),
+                      Text(_isEditMode ? 'Sửa ví' : 'Thêm ví mới',
+                          style: AppTextStyles.h3),
                       IconButton(
                         icon: const Icon(Icons.close_rounded,
                             color: AppColors.textSecondary),
@@ -130,13 +149,14 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
                   _buildPreviewCard(),
                   const SizedBox(height: 20),
 
-                  // ── Wallet type selector ──
-                  Text('LOẠI VÍ',
-                      style: AppTextStyles.label
-                          .copyWith(letterSpacing: 1.2)),
-                  const SizedBox(height: 10),
-                  _buildTypeSelector(),
-                  const SizedBox(height: 16),
+                  if (!_isEditMode) ...[
+                    Text('LOẠI VÍ',
+                        style: AppTextStyles.label
+                            .copyWith(letterSpacing: 1.2)),
+                    const SizedBox(height: 10),
+                    _buildTypeSelector(),
+                    const SizedBox(height: 16),
+                  ],
 
                   // ── Name field ──
                   TextField(
@@ -151,19 +171,38 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
                   ),
                   const SizedBox(height: 12),
 
-                  // ── Balance field ──
-                  TextField(
-                    controller: _balanceController,
-                    keyboardType: TextInputType.number,
-                    style: AppTextStyles.bodyLarge,
-                    onChanged: (_) => setState(() {}),
-                    decoration: AppWidgets.inputDecoration(
-                      label: 'Số dư ban đầu',
-                      prefixIcon: const Icon(Icons.monetization_on_rounded,
-                          color: AppColors.primary, size: 20),
-                      suffixText: 'đ',
+                  if (_isEditMode) ...[
+                    TextField(
+                      controller: _balanceController,
+                      readOnly: true,
+                      style: AppTextStyles.bodyLarge.copyWith(
+                          color: AppColors.textSecondary),
+                      decoration: AppWidgets.inputDecoration(
+                        label: 'Số dư hiện tại (không sửa tại đây)',
+                        prefixIcon: const Icon(Icons.monetization_on_rounded,
+                            color: AppColors.textSecondary, size: 20),
+                        suffixText: 'đ',
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Số dư thay đổi qua giao dịch thu/chi.',
+                      style: AppTextStyles.caption,
+                    ),
+                  ] else ...[
+                    TextField(
+                      controller: _balanceController,
+                      keyboardType: TextInputType.number,
+                      style: AppTextStyles.bodyLarge,
+                      onChanged: (_) => setState(() {}),
+                      decoration: AppWidgets.inputDecoration(
+                        label: 'Số dư ban đầu',
+                        prefixIcon: const Icon(Icons.monetization_on_rounded,
+                            color: AppColors.primary, size: 20),
+                        suffixText: 'đ',
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // ── Submit ──
@@ -173,8 +212,8 @@ class _AddWalletBottomSheetState extends State<AddWalletBottomSheet> {
                     child: ElevatedButton(
                       onPressed: _submitData,
                       style: AppWidgets.primaryButtonStyle(),
-                      child:
-                          const Text('Tạo ví', style: AppTextStyles.button),
+                      child: Text(_isEditMode ? 'Lưu thay đổi' : 'Tạo ví',
+                          style: AppTextStyles.button),
                     ),
                   ),
                   const SizedBox(height: 4),

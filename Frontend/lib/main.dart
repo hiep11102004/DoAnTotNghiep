@@ -33,8 +33,10 @@ import 'feature/transaction/presentation/pages/dashboard_page.dart';
 import 'feature/transaction/presentation/pages/transaction_list_page.dart';
 
 // --- WALLET & BUDGET ---
+import 'core/constants/app_constants.dart';
 import 'feature/wallet/presentation/bloc/wallet_bloc.dart';
 import 'feature/wallet/presentation/bloc/wallet_event.dart';
+import 'feature/wallet/presentation/pages/wallet_page.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_bloc.dart';
 import 'package:financial_app/feature/budget/presentation/bloc/budget_event.dart';
 
@@ -168,6 +170,7 @@ class MyApp extends StatelessWidget {
           '/notifications': (_) => const NotificationPage(),
           '/saving-goals': (_) => const SavingGoalPage(),
           '/transactions': (_) => const TransactionListPage(),
+          AppConstants.wallets: (_) => const WalletPage(),
         },
         home: const LoginPage(),
       ),

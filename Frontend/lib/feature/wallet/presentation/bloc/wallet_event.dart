@@ -12,3 +12,16 @@ class CreateWallet extends WalletEvent {
 
   const CreateWallet({required this.name, required this.initialBalance});
 }
+
+class UpdateWallet extends WalletEvent {
+  final int id;
+  final String name;
+
+  const UpdateWallet({required this.id, required this.name});
+}
+
+class DeleteWallet extends WalletEvent {
+  final int id;
+
+  const DeleteWallet({required this.id});
+}

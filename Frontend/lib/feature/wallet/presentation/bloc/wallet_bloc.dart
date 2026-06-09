@@ -32,12 +32,67 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
           'name': event.name,
           'initial_balance': event.initialBalance,
           'current_balance': event.initialBalance,
-          'type': 'Cash', // Mặc định là Cash nếu ông chưa làm dropdown chọn loại ví
-          'currency': 'VND', // Mặc định là VND
+          'type': 'Cash',
+          'currency': 'VND',
         });
         add(const FetchWallets());
       } catch (e) {
         emit(WalletError('Tạo ví thất bại: ${e.toString()}'));
+      }
+    });
+
+    on<UpdateWallet>((event, emit) async {
+      final previous = state is WalletLoaded
+          ? (state as WalletLoaded).wallets
+          : state is WalletActionFailure
+              ? (state as WalletActionFailure).wallets
+              : null;
+      try {
+        await dio.put('${AppConstants.wallets}/${event.id}', data: {
+          'name': event.name,
+        });
+        add(const FetchWallets());
+      } on DioException catch (e) {
+        final msg =
+            e.response?.data['message']?.toString() ?? 'Cập nhật ví thất bại';
+        if (previous != null) {
+          emit(WalletActionFailure(msg, previous));
+        } else {
+          emit(WalletError(msg));
+        }
+      } catch (e) {
+        final msg = 'Cập nhật ví thất bại: ${e.toString()}';
+        if (previous != null) {
+          emit(WalletActionFailure(msg, previous));
+        } else {
+          emit(WalletError(msg));
+        }
+      }
+    });
+
+    on<DeleteWallet>((event, emit) async {
+      final previous = state is WalletLoaded
+          ? (state as WalletLoaded).wallets
+          : state is WalletActionFailure
+              ? (state as WalletActionFailure).wallets
+              : null;
+      try {
+        await dio.delete('${AppConstants.wallets}/${event.id}');
+        add(const FetchWallets());
+      } on DioException catch (e) {
+        final msg = e.response?.data['message']?.toString() ?? 'Xóa ví thất bại';
+        if (previous != null) {
+          emit(WalletActionFailure(msg, previous));
+        } else {
+          emit(WalletError(msg));
+        }
+      } catch (e) {
+        final msg = 'Xóa ví thất bại: ${e.toString()}';
+        if (previous != null) {
+          emit(WalletActionFailure(msg, previous));
+        } else {
+          emit(WalletError(msg));
+        }
       }
     });
   }

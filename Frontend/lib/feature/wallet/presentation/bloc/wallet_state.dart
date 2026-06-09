@@ -19,3 +19,10 @@ class WalletError extends WalletState {
   
   const WalletError(this.message);
 }
+
+class WalletActionFailure extends WalletState {
+  final String message;
+  final List<WalletEntity> wallets;
+
+  const WalletActionFailure(this.message, this.wallets);
+}

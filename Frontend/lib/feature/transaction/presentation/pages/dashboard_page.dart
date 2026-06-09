@@ -15,10 +15,10 @@ import 'package:financial_app/feature/wallet/presentation/bloc/wallet_event.dart
 import 'package:financial_app/feature/wallet/presentation/bloc/wallet_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:financial_app/core/constants/app_constants.dart';
 import 'package:financial_app/core/constants/app_theme.dart';
+import 'package:financial_app/feature/wallet/data/models/wallet_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:financial_app/feature/wallet/presentation/widgets/add_wallet_bottom_sheet.dart';
 
 import '../bloc/transaction_bloc.dart';
 import '../bloc/transaction_event.dart';
@@ -379,97 +379,147 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Future<void> _openWalletManagement() async {
+    await Navigator.pushNamed(context, AppConstants.wallets);
+    if (mounted) {
+      context.read<WalletBloc>().add(const FetchWallets());
+    }
+  }
+
+  Widget _buildWalletChip(WalletModel wallet) {
+    return Flexible(
+      child: Container(
+        margin: const EdgeInsets.only(right: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.shadowBase.withOpacity(0.04), blurRadius: 4)
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.account_balance_wallet_rounded,
+                size: 13, color: AppColors.primary),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                wallet.name,
+                style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              _formatCurrencyShort(wallet.currentBalance),
+              style: AppTextStyles.caption.copyWith(
+                  color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreWalletsChip(int count) {
+    return GestureDetector(
+      onTap: _openWalletManagement,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.more_horiz_rounded,
+                size: 14, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text(
+              '+$count ví',
+              style: AppTextStyles.caption.copyWith(
+                  color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Wallet chips row ───────────────────────────────────────────────────────
   Widget _buildWalletRow() {
     return BlocBuilder<WalletBloc, WalletState>(
       builder: (context, state) {
         if (state is! WalletLoaded) return const SizedBox(height: AppSpacing.sm);
+
+        final sorted = state.wallets
+            .map((w) => w as WalletModel)
+            .toList()
+          ..sort((a, b) => b.currentBalance.compareTo(a.currentBalance));
+
+        final visible = sorted.take(2).toList();
+        final remaining = sorted.length - visible.length;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row label + "Xem tất cả" link
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Ví của tôi', style: AppTextStyles.h4),
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/wallets'),
+                    onTap: _openWalletManagement,
+                    behavior: HitTestBehavior.opaque,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Quản lý', style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                        Text('Quản lý',
+                            style: AppTextStyles.caption.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
                         const SizedBox(width: 2),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: AppColors.primary),
+                        const Icon(Icons.arrow_forward_ios_rounded,
+                            size: 10, color: AppColors.primary),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            // Chips
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
+            if (visible.isEmpty)
+              Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                children: [
-                  ...state.wallets.map((w) => Container(
-                    margin: const EdgeInsets.only(right: AppSpacing.sm),
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                      border: Border.all(color: AppColors.border),
-                      boxShadow: [BoxShadow(color: AppColors.shadowBase.withOpacity(0.04), blurRadius: 4)],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.account_balance_wallet_rounded, size: 13, color: AppColors.primary),
-                        const SizedBox(width: 5),
-                        Text(w.name, style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                        const SizedBox(width: 4),
-                        Text(_formatCurrencyShort(w.currentBalance), style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                  )),
-                  GestureDetector(
-                    onTap: () async {
-                      final result = await showModalBottomSheet<bool>(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => BlocProvider.value(
-                          value: context.read<WalletBloc>(),
-                          child: const AddWalletBottomSheet(),
-                        ),
-                      );
-                      if (result == true && context.mounted) {
-                        context.read<WalletBloc>().add(const FetchWallets());
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs + 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.add_rounded, size: 13, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Text('Thêm ví', style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
+                child: GestureDetector(
+                  onTap: _openWalletManagement,
+                  child: Text(
+                    'Chưa có ví — nhấn Quản lý để thêm',
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textSecondary),
                   ),
-                ],
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
+                child: Row(
+                  children: [
+                    ...visible.map(_buildWalletChip),
+                    if (remaining > 0) _buildMoreWalletsChip(remaining),
+                  ],
+                ),
               ),
-            ),
           ],
         );
       },

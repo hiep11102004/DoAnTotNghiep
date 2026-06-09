@@ -28,96 +28,187 @@ class _WalletPageState extends State<WalletPage> {
         ' đ';
   }
 
+  Future<void> _openEditSheet(WalletModel wallet) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider.value(
+        value: context.read<WalletBloc>(),
+        child: AddWalletBottomSheet(walletToEdit: wallet),
+      ),
+    );
+    if (result == true && mounted) {
+      context.read<WalletBloc>().add(const FetchWallets());
+    }
+  }
+
+  Future<void> _confirmDelete(WalletModel wallet) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa ví'),
+        content: Text(
+          'Bạn có chắc muốn xóa ví "${wallet.name}"?\n\n'
+          'Các giao dịch liên quan cũng sẽ bị xóa. Hành động này không thể hoàn tác.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Xóa', style: TextStyle(color: AppColors.expense)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      context.read<WalletBloc>().add(DeleteWallet(id: wallet.id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppWidgets.appBar(
-        title: 'Ví của tôi',
-        automaticallyImplyLeading: false,
-      ),
-      body: BlocBuilder<WalletBloc, WalletState>(
-        builder: (context, state) {
-          if (state is WalletLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (state is WalletError) {
-            return AppWidgets.emptyState(
-              icon: Icons.wifi_off_rounded,
-              title: 'Không thể tải dữ liệu',
-              subtitle: state.message,
-              action: ElevatedButton.icon(
-                onPressed: () => context.read<WalletBloc>().add(const FetchWallets()),
-                style: AppWidgets.primaryButtonStyle(),
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Thử lại', style: AppTextStyles.buttonSmall),
-              ),
-            );
-          }
-
-          if (state is WalletLoaded) {
-            if (state.wallets.isEmpty) {
-              return AppWidgets.emptyState(
-                icon: Icons.account_balance_wallet_outlined,
-                title: 'Chưa có ví nào',
-                subtitle: 'Thêm ví đầu tiên để bắt đầu theo dõi tài chính',
+    return BlocListener<WalletBloc, WalletState>(
+      listenWhen: (_, curr) =>
+          curr is WalletError || curr is WalletActionFailure,
+      listener: (context, state) {
+        final message = state is WalletActionFailure
+            ? state.message
+            : state is WalletError
+                ? state.message
+                : null;
+        if (message != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: AppColors.expense,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppWidgets.appBar(title: 'Quản lý ví'),
+        body: BlocBuilder<WalletBloc, WalletState>(
+          builder: (context, state) {
+            if (state is WalletLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
               );
             }
 
-            return RefreshIndicator(
-              color: AppColors.primary,
-              onRefresh: () async => context.read<WalletBloc>().add(const FetchWallets()),
-              child: Column(
-                children: [
-                  _buildTotalCard(state.wallets),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.sm,
-                        AppSpacing.lg,
-                        100,
-                      ),
-                      itemCount: state.wallets.length,
-                      itemBuilder: (context, i) =>
-                          _buildWalletCard(state.wallets[i]),
-                    ),
+            if (state is WalletError) {
+              return AppWidgets.emptyState(
+                icon: Icons.wifi_off_rounded,
+                title: 'Không thể tải dữ liệu',
+                subtitle: state.message,
+                action: ElevatedButton.icon(
+                  onPressed: () =>
+                      context.read<WalletBloc>().add(const FetchWallets()),
+                  style: AppWidgets.primaryButtonStyle(),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label:
+                      const Text('Thử lại', style: AppTextStyles.buttonSmall),
+                ),
+              );
+            }
+
+            final wallets = state is WalletLoaded
+                ? state.wallets
+                : state is WalletActionFailure
+                    ? state.wallets
+                    : null;
+
+            if (wallets != null) {
+              if (wallets.isEmpty) {
+                return AppWidgets.emptyState(
+                  icon: Icons.account_balance_wallet_outlined,
+                  title: 'Chưa có ví nào',
+                  subtitle: 'Thêm ví đầu tiên để bắt đầu theo dõi tài chính',
+                  action: ElevatedButton.icon(
+                    onPressed: () async {
+                      final result = await showModalBottomSheet<bool>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<WalletBloc>(),
+                          child: const AddWalletBottomSheet(),
+                        ),
+                      );
+                      if (result == true && context.mounted) {
+                        context.read<WalletBloc>().add(const FetchWallets());
+                      }
+                    },
+                    style: AppWidgets.primaryButtonStyle(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Thêm ví'),
                   ),
-                ],
+                );
+              }
+
+              final sorted = wallets
+                  .map((w) => w as WalletModel)
+                  .toList()
+                ..sort((a, b) => b.currentBalance.compareTo(a.currentBalance));
+
+              return RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async =>
+                    context.read<WalletBloc>().add(const FetchWallets()),
+                child: Column(
+                  children: [
+                    _buildTotalCard(sorted),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.sm,
+                          AppSpacing.lg,
+                          100,
+                        ),
+                        itemCount: sorted.length,
+                        itemBuilder: (context, i) =>
+                            _buildWalletCard(sorted[i]),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return const SizedBox();
+          },
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            final result = await showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => BlocProvider.value(
+                value: context.read<WalletBloc>(),
+                child: const AddWalletBottomSheet(),
               ),
             );
-          }
-
-          return const SizedBox();
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await showModalBottomSheet<bool>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => BlocProvider.value(
-              value: context.read<WalletBloc>(),
-              child: const AddWalletBottomSheet(),
-            ),
-          );
-          if (result == true && context.mounted) {
-            context.read<WalletBloc>().add(const FetchWallets());
-          }
-        },
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-        icon: const Icon(Icons.add),
-        label: const Text('Thêm ví', style: TextStyle(fontWeight: FontWeight.bold)),
+            if (result == true && context.mounted) {
+              context.read<WalletBloc>().add(const FetchWallets());
+            }
+          },
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textOnPrimary,
+          icon: const Icon(Icons.add),
+          label: const Text('Thêm ví',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
       ),
     );
   }
 
-  /// Card tổng số dư tất cả ví
   Widget _buildTotalCard(List<WalletModel> wallets) {
     final total = wallets.fold<double>(0, (sum, w) => sum + w.currentBalance);
     return Container(
@@ -149,7 +240,8 @@ class _WalletPageState extends State<WalletPage> {
               color: AppColors.textOnPrimary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: const Icon(Icons.account_balance_rounded, color: AppColors.textOnPrimary, size: 26),
+            child: const Icon(Icons.account_balance_rounded,
+                color: AppColors.textOnPrimary, size: 26),
           ),
           const SizedBox(width: AppSpacing.lg),
           Expanded(
@@ -158,17 +250,20 @@ class _WalletPageState extends State<WalletPage> {
               children: [
                 Text(
                   'Tổng số dư',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textOnPrimary.withOpacity(0.8)),
+                  style: AppTextStyles.bodySmall
+                      .copyWith(color: AppColors.textOnPrimary.withOpacity(0.8)),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   _formatCurrency(total),
-                  style: AppTextStyles.amountLarge.copyWith(color: AppColors.textOnPrimary),
+                  style: AppTextStyles.amountLarge
+                      .copyWith(color: AppColors.textOnPrimary),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '${wallets.length} ví',
-                  style: AppTextStyles.caption.copyWith(color: AppColors.textOnPrimary.withOpacity(0.7)),
+                  style: AppTextStyles.caption
+                      .copyWith(color: AppColors.textOnPrimary.withOpacity(0.7)),
                 ),
               ],
             ),
@@ -178,7 +273,6 @@ class _WalletPageState extends State<WalletPage> {
     );
   }
 
-  /// Card từng ví
   Widget _buildWalletCard(WalletModel wallet) {
     final icons = [
       Icons.account_balance_wallet_rounded,
@@ -224,7 +318,28 @@ class _WalletPageState extends State<WalletPage> {
                 style: AppTextStyles.amountIncome,
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text('Hiện tại', style: AppTextStyles.caption),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 18, color: AppColors.primary),
+                    onPressed: () => _openEditSheet(wallet),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        size: 18, color: AppColors.expense),
+                    onPressed: () => _confirmDelete(wallet),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
